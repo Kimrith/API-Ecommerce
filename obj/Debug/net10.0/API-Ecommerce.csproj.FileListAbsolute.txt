@@ -12,6 +12,8 @@ D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\bin\Debug\net10.0\Azure.Ide
 D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\bin\Debug\net10.0\BCrypt-Net-Next.dll
 D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\bin\Debug\net10.0\Dapper.dll
 D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\bin\Debug\net10.0\Humanizer.dll
+D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\bin\Debug\net10.0\MediatR.dll
+D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\bin\Debug\net10.0\MediatR.Contracts.dll
 D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
 D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\bin\Debug\net10.0\Microsoft.AspNetCore.OpenApi.dll
 D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\bin\Debug\net10.0\Microsoft.Bcl.AsyncInterfaces.dll
@@ -146,6 +148,7 @@ D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\obj\Debug\net10.0\API-Ecomm
 D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\obj\Debug\net10.0\API-Ecommerce.csproj.CoreCompileInputs.cache
 D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\obj\Debug\net10.0\API-Ecommerce.MvcApplicationPartsAssemblyInfo.cs
 D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\obj\Debug\net10.0\API-Ecommerce.MvcApplicationPartsAssemblyInfo.cache
+D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\obj\Debug\net10.0\API-Ecommerce.sourcelink.json
 D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\obj\Debug\net10.0\rjimswa.dswa.cache.json
 D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\obj\Debug\net10.0\rjsmrazor.dswa.cache.json
 D:\setec year4\Ecommerce\API-Ecommerce\API-Ecommerce\obj\Debug\net10.0\rjsmcshtml.dswa.cache.json

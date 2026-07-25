@@ -1,6 +1,5 @@
 using API_Ecommerce.Commands.Create;
 using API_Ecommerce.DTOs;
-using API_Ecommerce.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API_Ecommerce.Controllers
@@ -16,8 +15,7 @@ namespace API_Ecommerce.Controllers
             _authCommand = authCommand;
         }
 
-        // --- 1. USER / CUSTOMER REGISTER ---
-        // --- 1. USER / CUSTOMER REGISTER ---
+        // --- 1. REGISTER (USER / SELLER / ADMIN) ---
         [HttpPost("register")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> Register([FromForm] RegisterDto dto)
@@ -26,69 +24,7 @@ namespace API_Ecommerce.Controllers
             {
                 string? profileImageUrl = null;
 
-                // Save uploaded file to wwwroot/uploads if provided
-                if (dto.ProfileImage != null && dto.ProfileImage.Length > 0)
-                {
-                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-                    if (!Directory.Exists(uploadsFolder))
-                    {
-                        Directory.CreateDirectory(uploadsFolder);
-                    }
-
-                    var fileName = $"{Guid.NewGuid()}_{dto.ProfileImage.FileName}";
-                    var filePath = Path.Combine(uploadsFolder, fileName);
-
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await dto.ProfileImage.CopyToAsync(stream);
-                    }
-
-                    profileImageUrl = $"/uploads/{fileName}";
-                }
-
-                // ExecuteRegisterAsync now returns the complete AuthResponseDto (including Token)
-                var response = await _authCommand.ExecuteRegisterAsync(dto, Roles.Customer, profileImageUrl);
-
-                return Ok(response); // <-- Simply return the response object!
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred during registration.", details = ex.Message });
-            }
-        }
-
-        // --- 2. USER LOGIN ---
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginDto dto)
-        {
-            try
-            {
-                var response = await _authCommand.ExecuteLoginAsync(dto);
-                return Ok(response);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred during login.", details = ex.Message });
-            }
-        }
-
-        // --- 3. ADD SELLER (FROM ADMIN UI FORM WITH FILE UPLOAD) ---
-        [HttpPost("add-seller")]
-        [Consumes("multipart/form-data")]
-        public async Task<IActionResult> AddSeller([FromForm] CreateSellerDto dto)
-        {
-            try
-            {
-                string? profileImageUrl = null;
-
+                // Save uploaded profile image to wwwroot/uploads if provided
                 if (dto.ProfileImage != null && dto.ProfileImage.Length > 0)
                 {
                     var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
@@ -116,7 +52,8 @@ namespace API_Ecommerce.Controllers
                     profileImageUrl = $"/uploads/{fileName}";
                 }
 
-                var response = await _authCommand.ExecuteCreateSellerAsync(dto, profileImageUrl);
+                // Register user with the role supplied in dto.Role (Customer, Seller, Admin, etc.)
+                var response = await _authCommand.ExecuteRegisterAsync(dto, profileImageUrl);
 
                 return Ok(response);
             }
@@ -126,7 +63,26 @@ namespace API_Ecommerce.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred while creating the seller account.", details = ex.Message });
+                return StatusCode(500, new { message = "An error occurred during registration.", details = ex.Message });
+            }
+        }
+
+        // --- 2. LOGIN ---
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginDto dto)
+        {
+            try
+            {
+                var response = await _authCommand.ExecuteLoginAsync(dto);
+                return Ok(response);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred during login.", details = ex.Message });
             }
         }
     }

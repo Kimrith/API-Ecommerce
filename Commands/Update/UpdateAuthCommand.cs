@@ -14,7 +14,7 @@ namespace API_Ecommerce.Commands.Update
             _context = context;
         }
 
-        public async Task<Auth> ExecuteAsync(int userId, CreateSellerDto dto, string? newProfileImageUrl = null)
+        public async Task<Auth> ExecuteAsync(int userId, UpdateUserDto dto, string? newProfileImageUrl = null)
         {
             // 1. Fetch existing Auth record
             var user = await _context.Auths.FirstOrDefaultAsync(u => u.Id == userId);
@@ -62,8 +62,7 @@ namespace API_Ecommerce.Commands.Update
 
             user.UpdatedAt = DateTime.UtcNow;
 
-            // 6. Save changes
-            _context.Auths.Update(user);
+            // 6. Save changes tracked by EF Core
             await _context.SaveChangesAsync();
 
             return user;

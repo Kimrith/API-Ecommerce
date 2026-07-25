@@ -23,7 +23,8 @@ namespace API_Ecommerce.Models
         // --- New Seller Fields ---
         public string? ShopName { get; set; }
 
-        public string? Status { get; set; } = "Active";
+        // Using Status enum instead of string
+        public AuthStatus Status { get; set; } = AuthStatus.Active;
 
         public string? Address { get; set; }
 

@@ -1,4 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using API_Ecommerce.Enums;
 
 namespace API_Ecommerce.Models
 {
@@ -12,12 +14,21 @@ namespace API_Ecommerce.Models
         public string Name { get; set; } = string.Empty;
 
         [StringLength(150)]
-        public string Slug { get; set; } = string.Empty; // e.g., "mens-clothing"
+        public string Slug { get; set; } = string.Empty;
+
+        public CategoriesStatus Status { get; set; } = CategoriesStatus.Pending;
 
         [StringLength(500)]
         public string? Description { get; set; }
 
         public string? ImageUrl { get; set; }
+
+        // --- Track Creator (Seller / Admin) ---
+        [Required]
+        public int UserId { get; set; }
+
+        [ForeignKey(nameof(UserId))]
+        public virtual Auth? User { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }

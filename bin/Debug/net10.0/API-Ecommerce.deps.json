@@ -10,11 +10,12 @@
         "dependencies": {
           "BCrypt.Net-Next": "4.2.0",
           "Dapper": "2.1.79",
+          "MediatR": "14.2.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "10.0.10",
           "Microsoft.AspNetCore.OpenApi": "10.0.10",
           "Microsoft.EntityFrameworkCore.Design": "10.0.10",
           "Microsoft.EntityFrameworkCore.SqlServer": "10.0.10",
-          "Microsoft.OpenApi": "2.3.9",
+          "Microsoft.OpenApi": "2.7.5",
           "Scalar.AspNetCore": "2.16.16",
           "System.IdentityModel.Tokens.Jwt": "8.21.0"
         },
@@ -72,6 +73,26 @@
           }
         }
       },
+      "MediatR/14.2.0": {
+        "dependencies": {
+          "MediatR.Contracts": "2.0.1",
+          "Microsoft.IdentityModel.JsonWebTokens": "8.21.0"
+        },
+        "runtime": {
+          "lib/net10.0/MediatR.dll": {
+            "assemblyVersion": "14.0.0.0",
+            "fileVersion": "14.2.0.0"
+          }
+        }
+      },
+      "MediatR.Contracts/2.0.1": {
+        "runtime": {
+          "lib/netstandard2.0/MediatR.Contracts.dll": {
+            "assemblyVersion": "2.0.1.0",
+            "fileVersion": "2.0.1.0"
+          }
+        }
+      },
       "Microsoft.AspNetCore.Authentication.JwtBearer/10.0.10": {
         "dependencies": {
           "Microsoft.IdentityModel.Protocols.OpenIdConnect": "8.19.2"
@@ -85,7 +106,7 @@
       },
       "Microsoft.AspNetCore.OpenApi/10.0.10": {
         "dependencies": {
-          "Microsoft.OpenApi": "2.3.9"
+          "Microsoft.OpenApi": "2.7.5"
         },
         "runtime": {
           "lib/net10.0/Microsoft.AspNetCore.OpenApi.dll": {
@@ -639,11 +660,11 @@
           }
         }
       },
-      "Microsoft.OpenApi/2.3.9": {
+      "Microsoft.OpenApi/2.7.5": {
         "runtime": {
           "lib/net8.0/Microsoft.OpenApi.dll": {
-            "assemblyVersion": "2.3.9.0",
-            "fileVersion": "2.3.9.0"
+            "assemblyVersion": "2.7.5.0",
+            "fileVersion": "2.7.5.0"
           }
         }
       },
@@ -851,6 +872,20 @@
       "path": "humanizer.core/2.14.1",
       "hashPath": "humanizer.core.2.14.1.nupkg.sha512"
     },
+    "MediatR/14.2.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-1vqNVS6ijU0IF78vDfIE99pi0iTa+M/1ztRlM98P+KL+Loi/O4knaR2+ex0AqbT5xBl01VFryjuYUAFtvGwzOQ==",
+      "path": "mediatr/14.2.0",
+      "hashPath": "mediatr.14.2.0.nupkg.sha512"
+    },
+    "MediatR.Contracts/2.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-FYv95bNT4UwcNA+G/J1oX5OpRiSUxteXaUt2BJbRSdRNiIUNbggJF69wy6mnk2wYToaanpdXZdCwVylt96MpwQ==",
+      "path": "mediatr.contracts/2.0.1",
+      "hashPath": "mediatr.contracts.2.0.1.nupkg.sha512"
+    },
     "Microsoft.AspNetCore.Authentication.JwtBearer/10.0.10": {
       "type": "package",
       "serviceable": true,
@@ -1033,12 +1068,12 @@
       "path": "microsoft.identitymodel.tokens/8.21.0",
       "hashPath": "microsoft.identitymodel.tokens.8.21.0.nupkg.sha512"
     },
-    "Microsoft.OpenApi/2.3.9": {
+    "Microsoft.OpenApi/2.7.5": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-ILwsyAMvb64TTrjo5qix4jUtNeedxlCBW6htGarLGC3hFKDr3215HYi4J+j2y5wEGiR0X1asgXnB0ZV8DfcoVg==",
-      "path": "microsoft.openapi/2.3.9",
-      "hashPath": "microsoft.openapi.2.3.9.nupkg.sha512"
+      "sha512": "sha512-0FA67RSnRM4tcBKqiqVu/HPdZ9+QOKbmeRjxRUGTCjPU4C0bmUhd97Dso7Yild5P7nOV6GxJ2xrK0Kv/O9xp0w==",
+      "path": "microsoft.openapi/2.7.5",
+      "hashPath": "microsoft.openapi.2.7.5.nupkg.sha512"
     },
     "Microsoft.SqlServer.Server/1.0.0": {
       "type": "package",

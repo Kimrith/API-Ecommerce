@@ -18,8 +18,8 @@ namespace API_Ecommerce.Commands.Create
             _tokenService = tokenService;
         }
 
-        // --- 1. REGISTER CUSTOMER / USER ---
-        public async Task<AuthResponseDto> ExecuteRegisterAsync(RegisterDto dto, Roles role = Roles.Customer, string? profileImageUrl = null)
+        // --- 1. REGISTER USER WITH SELECTABLE ROLE ---
+        public async Task<AuthResponseDto> ExecuteRegisterAsync(RegisterDto dto, string? profileImageUrl = null)
         {
             var existingUser = await _context.Auths
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
@@ -37,8 +37,10 @@ namespace API_Ecommerce.Commands.Create
                 Email = dto.Email,
                 PhoneNumber = dto.PhoneNumber,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = role,
-                Status = "Active",
+                Role = dto.Role, // Reads chosen role directly from DTO
+                ShopName = dto.Role == Roles.Seller ? dto.ShopName : null,
+                Status = AuthStatus.Active,
+                Address = dto.Address,
                 ProfileImageUrl = profileImageUrl,
                 CreatedAt = DateTime.UtcNow
             };
@@ -74,7 +76,7 @@ namespace API_Ecommerce.Commands.Create
                 throw new InvalidOperationException("Invalid email or password.");
             }
 
-            if (!string.Equals(user.Status, "Active", StringComparison.OrdinalIgnoreCase))
+            if (user.Status != AuthStatus.Active)
             {
                 throw new InvalidOperationException("Your account is inactive. Please contact support.");
             }
@@ -92,51 +94,6 @@ namespace API_Ecommerce.Commands.Create
                 Status = user.Status,
                 Address = user.Address,
                 ProfileImageUrl = user.ProfileImageUrl,
-                Token = token
-            };
-        }
-
-        // --- 3. CREATE SELLER (ADMIN UI OR DIRECT SELLER REGISTRATION) ---
-        public async Task<AuthResponseDto> ExecuteCreateSellerAsync(CreateSellerDto dto, string? profileImageUrl = null)
-        {
-            var existingUser = await _context.Auths
-                .FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
-
-            if (existingUser != null)
-            {
-                throw new InvalidOperationException("An account with this email address already exists.");
-            }
-
-            var seller = new Auth
-            {
-                FullName = dto.FullName,
-                Email = dto.Email,
-                PhoneNumber = dto.PhoneNumber,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                ShopName = dto.ShopName,
-                Status = dto.Status,
-                Address = dto.Address,
-                ProfileImageUrl = profileImageUrl,
-                Role = Roles.Seller,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.Auths.Add(seller);
-            await _context.SaveChangesAsync();
-
-            // Generate JWT Token for newly created seller
-            string token = _tokenService.GenerateToken(seller);
-
-            return new AuthResponseDto
-            {
-                UserId = seller.Id,
-                FullName = seller.FullName,
-                Email = seller.Email,
-                Role = seller.Role.ToString(),
-                ShopName = seller.ShopName,
-                Status = seller.Status,
-                Address = seller.Address,
-                ProfileImageUrl = seller.ProfileImageUrl,
                 Token = token
             };
         }

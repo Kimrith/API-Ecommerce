@@ -13,34 +13,34 @@ namespace API_Ecommerce.Models
         [StringLength(150)]
         public string Name { get; set; } = string.Empty;
 
-        [StringLength(1000)]
-        public string Description { get; set; } = string.Empty;
+        [StringLength(200)]
+        public string Slug { get; set; } = string.Empty;
 
-        [Required]
+        [StringLength(1000)]
+        public string? Description { get; set; }
+
         [Column(TypeName = "decimal(18,2)")]
         public decimal Price { get; set; }
 
-        [Required]
-        public int StockQuantity { get; set; } = 0;
+        public int StockQuantity { get; set; }
 
         public string ImageUrl { get; set; } = string.Empty;
 
-        // Status for Admin moderation
         public ProductStatus Status { get; set; } = ProductStatus.Pending;
 
-        // --- Foreign Key to Seller (Auth) ---
-        [Required]
-        public int SellerId { get; set; }
-
-        [ForeignKey(nameof(SellerId))]
-        public Auth Seller { get; set; } = null!;
-
-        // --- Foreign Key to Category ---
+        // --- Category Relationship ---
         [Required]
         public int CategoryId { get; set; }
 
         [ForeignKey(nameof(CategoryId))]
-        public Categories Category { get; set; } = null!;
+        public virtual Categories? Category { get; set; }
+
+        // --- Seller / Creator Relationship ---
+        [Required]
+        public int SellerId { get; set; }
+
+        [ForeignKey(nameof(SellerId))]
+        public virtual Auth? Seller { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }

@@ -1,5 +1,6 @@
 using API_Ecommerce.Data;
 using API_Ecommerce.DTOs;
+using API_Ecommerce.Enums;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -76,18 +77,18 @@ namespace API_Ecommerce.Queries
         public async Task<IEnumerable<AuthResponseDto>> GetAllSellersAsync()
         {
             const string sql = @"
-        SELECT 
-            Id AS UserId,
-            FullName,
-            Email,
-            Role,
-            ShopName,
-            Status,
-            Address,
-            ProfileImageUrl
-        FROM Auths
-        WHERE CAST(Role AS NVARCHAR(50)) IN ('Seller', '1')
-        ORDER BY CreatedAt DESC;";
+                SELECT 
+                    Id AS UserId,
+                    FullName,
+                    Email,
+                    Role,
+                    ShopName,
+                    Status,
+                    Address,
+                    ProfileImageUrl
+                FROM Auths
+                WHERE CAST(Role AS NVARCHAR(50)) IN ('Seller', '1')
+                ORDER BY CreatedAt DESC;";
 
             using var connection = await GetOpenConnectionAsync();
             return await connection.QueryAsync<AuthResponseDto>(sql);
@@ -96,7 +97,7 @@ namespace API_Ecommerce.Queries
         /// <summary>
         /// Retrieves all users with optional status filtering using Raw SQL.
         /// </summary>
-        public async Task<IEnumerable<AuthResponseDto>> GetAllUsersAsync(string? status = null)
+        public async Task<IEnumerable<AuthResponseDto>> GetAllUsersAsync(AuthStatus? status = null)
         {
             var sql = @"
                 SELECT 
@@ -112,10 +113,15 @@ namespace API_Ecommerce.Queries
 
             object? parameters = null;
 
-            if (!string.IsNullOrWhiteSpace(status))
+            if (status.HasValue)
             {
-                sql += " WHERE LOWER(Status) = LOWER(@Status)";
-                parameters = new { Status = status.Trim() };
+                // Handles both DB storage types: matching integer ID (e.g. 0) or string name ("Active")
+                sql += " WHERE (Status = @StatusValue OR LOWER(CAST(Status AS NVARCHAR(50))) = LOWER(@StatusName))";
+                parameters = new
+                {
+                    StatusValue = (int)status.Value,
+                    StatusName = status.Value.ToString()
+                };
             }
 
             sql += " ORDER BY CreatedAt DESC;";
