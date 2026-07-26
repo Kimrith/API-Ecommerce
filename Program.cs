@@ -36,8 +36,9 @@ builder.Services.AddScoped<UpdateAuthCommand>();
 builder.Services.AddScoped<SuspendAuthCommand>();
 builder.Services.AddScoped<AuthQueries>();
 
-// Categories Queries
+// Categories & Product Queries
 builder.Services.AddScoped<CategoriesQueries>();
+builder.Services.AddScoped<ProductQueries>(); // 👈 ADDED: Required for ProductController
 
 // Token & Infrastructure Services
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -45,7 +46,6 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 // ==========================================
 // 4. JWT Authentication Setup
 // ==========================================
-// 💡 FIXED: GetSection("JwtSettings") matches appsettings.json key name
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["Secret"]
     ?? throw new InvalidOperationException("JWT Secret key is missing in appsettings.json.");
@@ -78,12 +78,18 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // Convert Enums to readable strings ("Active", "Approved", "Suspended")
+        // Convert Enums to readable strings ("Draft", "Pending", "Approved", "Suspended", etc.)
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    })
+    // 👈 ADDED: Enables string enum parsing in GET query parameters for Scalar/Swagger UI
+    .AddMvcOptions(options =>
+    {
+        options.ModelMetadataDetailsProviders.Add(
+            new Microsoft.AspNetCore.Mvc.ModelBinding.Metadata.SystemTextJsonValidationMetadataProvider());
     });
 
 // ==========================================
-// 6. OpenAPI / Scalar setup with Global Bearer Auth (NET 10 / OpenApi 2.x/3.x)
+// 6. OpenAPI / Scalar setup with Global Bearer Auth
 // ==========================================
 builder.Services.AddOpenApi("v1", options =>
 {
@@ -133,9 +139,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Serves uploaded category & user images from wwwroot
+app.UseStaticFiles(); // Serves uploaded product, category & user images from wwwroot
 
-// Note: UseAuthentication MUST be placed before UseAuthorization
 app.UseAuthentication();
 app.UseAuthorization();
 

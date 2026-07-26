@@ -26,10 +26,30 @@ namespace API_Ecommerce.Data
                 .Property(u => u.Status)
                 .HasConversion<string>();
 
-            // --- Product Enum Conversions ---
-            modelBuilder.Entity<Product>()
-                .Property(p => p.Status)
-                .HasConversion<string>();
+            // --- Product Configurations ---
+            modelBuilder.Entity<Product>(entity =>
+            {
+                entity.Property(p => p.Status)
+                      .HasConversion<string>();
+
+                // Decimal precision configuration to prevent truncation/precision loss warnings
+                entity.Property(p => p.Price)
+                      .HasColumnType("decimal(18,2)");
+
+                entity.Property(p => p.DiscountPrice)
+                      .HasColumnType("decimal(18,2)")
+                      .IsRequired(false);
+
+                // Optional DateTime fields
+                entity.Property(p => p.DiscountStartDate)
+                      .IsRequired(false);
+
+                entity.Property(p => p.DiscountEndDate)
+                      .IsRequired(false);
+
+                entity.Property(p => p.PublishAt)
+                      .IsRequired(false);
+            });
 
             // --- Categories Enum Conversions ---
             modelBuilder.Entity<Categories>()

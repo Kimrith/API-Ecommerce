@@ -22,11 +22,21 @@ namespace API_Ecommerce.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal Price { get; set; }
 
+        // --- Discount Fields ---
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? DiscountPrice { get; set; } = 0;
+
+        public DateTime? DiscountStartDate { get; set; }
+        public DateTime? DiscountEndDate { get; set; }
+
         public int StockQuantity { get; set; }
 
         public string ImageUrl { get; set; } = string.Empty;
 
         public ProductStatus Status { get; set; } = ProductStatus.Pending;
+
+        // --- Scheduled Posting ---
+        public DateTime? PublishAt { get; set; } = DateTime.UtcNow;
 
         // --- Category Relationship ---
         [Required]
