@@ -30,7 +30,7 @@ namespace API_Ecommerce.Queries
         /// <summary>
         /// Retrieves a single user/auth record by ID using Raw SQL.
         /// </summary>
-        public async Task<AuthResponseDto?> GetByIdAsync(int id)
+        public async Task<AuthResponseDto?> GetByIdAsync(long id)
         {
             const string sql = @"
                 SELECT 
@@ -40,7 +40,6 @@ namespace API_Ecommerce.Queries
                     Role,
                     ShopName,
                     Status,
-                    Address,
                     ProfileImageUrl
                 FROM Auths
                 WHERE Id = @Id;";
@@ -62,7 +61,6 @@ namespace API_Ecommerce.Queries
                     Role,
                     ShopName,
                     Status,
-                    Address,
                     ProfileImageUrl
                 FROM Auths
                 WHERE LOWER(Email) = LOWER(@Email);";
@@ -72,7 +70,7 @@ namespace API_Ecommerce.Queries
         }
 
         /// <summary>
-        /// Retrieves all sellers using Raw SQL (Safe for both string and int columns).
+        /// Retrieves all sellers using Raw SQL.
         /// </summary>
         public async Task<IEnumerable<AuthResponseDto>> GetAllSellersAsync()
         {
@@ -84,7 +82,6 @@ namespace API_Ecommerce.Queries
                     Role,
                     ShopName,
                     Status,
-                    Address,
                     ProfileImageUrl
                 FROM Auths
                 WHERE CAST(Role AS NVARCHAR(50)) IN ('Seller', '1')
@@ -107,7 +104,6 @@ namespace API_Ecommerce.Queries
                     Role,
                     ShopName,
                     Status,
-                    Address,
                     ProfileImageUrl
                 FROM Auths";
 

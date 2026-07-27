@@ -6,7 +6,7 @@ namespace API_Ecommerce.Models
     public class Auth
     {
         [Key]
-        public int Id { get; set; }
+        public long Id { get; set; } // Changed to long to match BIGINT foreign keys
 
         [Required]
         public string FullName { get; set; } = string.Empty;
@@ -23,17 +23,16 @@ namespace API_Ecommerce.Models
         // --- New Seller Fields ---
         public string? ShopName { get; set; }
 
-        // Using Status enum instead of string
         public AuthStatus Status { get; set; } = AuthStatus.Active;
-
-        public string? Address { get; set; }
 
         public string? ProfileImageUrl { get; set; }
 
-        // Set default to Seller or Customer as needed
         public Roles Role { get; set; } = Roles.Seller;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+
+        // --- Navigation Property for Addresses ---
+        public virtual ICollection<Address  > Addresses { get; set; } = new List<Address>();
     }
 }

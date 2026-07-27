@@ -7,7 +7,7 @@ namespace API_Ecommerce.Models
     public class Categories
     {
         [Key]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [Required]
         [StringLength(100)]
@@ -25,7 +25,7 @@ namespace API_Ecommerce.Models
 
         // --- Track Creator (Seller / Admin) ---
         [Required]
-        public int UserId { get; set; }
+        public long UserId { get; set; } // Updated from int to long
 
         [ForeignKey(nameof(UserId))]
         public virtual Auth? User { get; set; }

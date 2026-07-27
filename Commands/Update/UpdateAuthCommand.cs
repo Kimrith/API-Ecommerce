@@ -14,7 +14,7 @@ namespace API_Ecommerce.Commands.Update
             _context = context;
         }
 
-        public async Task<Auth> ExecuteAsync(int userId, UpdateUserDto dto, string? newProfileImageUrl = null)
+        public async Task<Auth> ExecuteAsync(long userId, UpdateUserDto dto, string? newProfileImageUrl = null)
         {
             // 1. Fetch existing Auth record
             var user = await _context.Auths.FirstOrDefaultAsync(u => u.Id == userId);
@@ -35,13 +35,12 @@ namespace API_Ecommerce.Commands.Update
                 }
             }
 
-            // 3. Update Profile Fields
+            // 3. Update Profile Fields (Address string removed)
             user.FullName = dto.FullName;
             user.Email = dto.Email;
             user.PhoneNumber = dto.PhoneNumber;
             user.ShopName = dto.ShopName;
             user.Status = dto.Status;
-            user.Address = dto.Address;
 
             // 4. Update Password safely if provided
             if (!string.IsNullOrWhiteSpace(dto.Password))

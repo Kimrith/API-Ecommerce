@@ -12,6 +12,7 @@ namespace API_Ecommerce.Data
         public DbSet<Auth> Auths { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Categories> Categories { get; set; }
+        public DbSet<Address> Addresses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -25,6 +26,23 @@ namespace API_Ecommerce.Data
             modelBuilder.Entity<Auth>()
                 .Property(u => u.Status)
                 .HasConversion<string>();
+
+            // --- Address Configurations ---
+            modelBuilder.Entity<Address>(entity =>
+            {
+                // Enum conversion to store 'Shipping' or 'Billing' as string in DB
+                entity.Property(a => a.AddressType)
+                      .HasConversion<string>();
+
+                // Matches `CREATE INDEX idx_addresses_user ON addresses(user_id);`
+                entity.HasIndex(a => a.UserId, "idx_addresses_user");
+
+                // Matches `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`
+                entity.HasOne(a => a.User)
+                      .WithMany(u => u.Addresses)
+                      .HasForeignKey(a => a.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
 
             // --- Product Configurations ---
             modelBuilder.Entity<Product>(entity =>

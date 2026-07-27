@@ -5,7 +5,7 @@
 namespace API_Ecommerce.Migrations
 {
     /// <inheritdoc />
-    public partial class Categories : Migration
+    public partial class erty : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

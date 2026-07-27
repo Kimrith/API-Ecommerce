@@ -7,7 +7,7 @@ namespace API_Ecommerce.Models
     public class Product
     {
         [Key]
-        public int Id { get; set; }
+        public long Id { get; set; } // Updated from int to long
 
         [Required]
         [StringLength(150)]
@@ -40,14 +40,14 @@ namespace API_Ecommerce.Models
 
         // --- Category Relationship ---
         [Required]
-        public int CategoryId { get; set; }
+        public long CategoryId { get; set; } // Updated from int to long (matches Categories.Id)
 
         [ForeignKey(nameof(CategoryId))]
         public virtual Categories? Category { get; set; }
 
         // --- Seller / Creator Relationship ---
         [Required]
-        public int SellerId { get; set; }
+        public long SellerId { get; set; } // Updated from int to long (matches Auth.Id)
 
         [ForeignKey(nameof(SellerId))]
         public virtual Auth? Seller { get; set; }

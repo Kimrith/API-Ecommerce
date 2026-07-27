@@ -2,7 +2,7 @@ namespace API_Ecommerce.Enums
 {
     public enum AuthStatus
     {
-        Active,
-        Suspended // or Spused depending on your spelling preference
+        Active = 1,
+        Suspended= 2 // or Spused depending on your spelling preference
     }
 }

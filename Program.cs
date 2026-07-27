@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using API_Ecommerce.Commands.Create;
 using API_Ecommerce.Commands.Suspend;
 using API_Ecommerce.Commands.Update;
+using API_Ecommerce.Commands.Delete;
 using API_Ecommerce.Data;
 using API_Ecommerce.Queries;
 using API_Ecommerce.Services;
@@ -39,6 +40,12 @@ builder.Services.AddScoped<AuthQueries>();
 // Categories & Product Queries
 builder.Services.AddScoped<CategoriesQueries>();
 builder.Services.AddScoped<ProductQueries>(); // 👈 ADDED: Required for ProductController
+
+// Register Address Queries & Commands
+builder.Services.AddScoped<AddressQueries>();
+builder.Services.AddScoped<CreateAddressCommand>();
+builder.Services.AddScoped<UpdateAddressCommand>();
+builder.Services.AddScoped<DeleteAddressCommand>();
 
 // Token & Infrastructure Services
 builder.Services.AddScoped<ITokenService, TokenService>();

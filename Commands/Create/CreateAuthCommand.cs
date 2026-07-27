@@ -40,7 +40,6 @@ namespace API_Ecommerce.Commands.Create
                 Role = dto.Role, // Reads chosen role directly from DTO
                 ShopName = dto.Role == Roles.Seller ? dto.ShopName : null,
                 Status = AuthStatus.Active,
-                Address = dto.Address,
                 ProfileImageUrl = profileImageUrl,
                 CreatedAt = DateTime.UtcNow
             };
@@ -59,9 +58,9 @@ namespace API_Ecommerce.Commands.Create
                 Role = authUser.Role.ToString(),
                 ShopName = authUser.ShopName,
                 Status = authUser.Status,
-                Address = authUser.Address,
                 ProfileImageUrl = authUser.ProfileImageUrl,
-                Token = token
+                Token = token,
+                Addresses = new List<AddressResponseDto>() // Freshly registered users have no addresses yet
             };
         }
 
@@ -69,6 +68,7 @@ namespace API_Ecommerce.Commands.Create
         public async Task<AuthResponseDto> ExecuteLoginAsync(LoginDto dto)
         {
             var user = await _context.Auths
+                .Include(u => u.Addresses) // Include addresses for response mapping
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
@@ -92,9 +92,21 @@ namespace API_Ecommerce.Commands.Create
                 Role = user.Role.ToString(),
                 ShopName = user.ShopName,
                 Status = user.Status,
-                Address = user.Address,
                 ProfileImageUrl = user.ProfileImageUrl,
-                Token = token
+                Token = token,
+                Addresses = user.Addresses.Select(a => new AddressResponseDto
+                {
+                    Id = a.Id,
+                    UserId = a.UserId,
+                    AddressType = a.AddressType,
+                    StreetAddress = a.StreetAddress,
+                    City = a.City,
+                    State = a.State,
+                    PostalCode = a.PostalCode,
+                    Country = a.Country,
+                    IsDefault = a.IsDefault,
+                    CreatedAt = a.CreatedAt
+                }).ToList()
             };
         }
     }

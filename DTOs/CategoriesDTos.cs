@@ -45,7 +45,7 @@ namespace API_Ecommerce.DTOs
     // --- Response sent back to Client ---
     public class CategoryResponseDto
     {
-        public int Id { get; set; }
+        public long Id { get; set; } // Updated from int to long
         public string Name { get; set; } = string.Empty;
         public string Slug { get; set; } = string.Empty;
         public CategoriesStatus Status { get; set; }
@@ -54,7 +54,7 @@ namespace API_Ecommerce.DTOs
         public int ProductCount { get; set; }
 
         // --- Creator Info ---
-        public int UserId { get; set; }
+        public long UserId { get; set; } // Updated from int to long
         public string CreatedBy { get; set; } = string.Empty; // FullName or Email of creator
 
         public DateTime CreatedAt { get; set; }

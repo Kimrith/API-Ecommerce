@@ -84,21 +84,22 @@ namespace API_Ecommerce.DTOs
     // --- 4. Response sent back after successful Auth Operations ---
     public class AuthResponseDto
     {
-        public int UserId { get; set; }
+        public long UserId { get; set; } // Updated from int to long
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
 
-        // Seller / User Profile details
         public string? ShopName { get; set; }
 
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public AuthStatus? Status { get; set; }
 
-        public string? Address { get; set; }
         public string? ProfileImageUrl { get; set; }
 
-        public int? SellerId => Role == "Seller" ? UserId : null;
+        // Returning user addresses as structured DTOs rather than a single string
+        public List<AddressResponseDto> Addresses { get; set; } = new();
+
+        public long? SellerId => Role == "Seller" ? UserId : null;
     }
 }

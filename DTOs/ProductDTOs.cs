@@ -17,7 +17,7 @@ namespace API_Ecommerce.DTOs
     // --- 1. Response DTO ---
     public class ProductResponseDto
     {
-        public int Id { get; set; }
+        public long Id { get; set; } // Updated from int to long
         public string Name { get; set; } = string.Empty;
         public string Slug { get; set; } = string.Empty;
         public string? Description { get; set; }
@@ -46,11 +46,11 @@ namespace API_Ecommerce.DTOs
         public DateTime? PublishAt { get; set; }
 
         // Category details
-        public int CategoryId { get; set; }
+        public long CategoryId { get; set; } // Updated from int to long
         public string CategoryName { get; set; } = string.Empty;
 
         // Seller details
-        public int SellerId { get; set; }
+        public long SellerId { get; set; } // Updated from int to long
         public string SellerName { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; }
@@ -83,7 +83,7 @@ namespace API_Ecommerce.DTOs
         public int StockQuantity { get; set; }
 
         [Required(ErrorMessage = "Category ID is required.")]
-        public int CategoryId { get; set; }
+        public long CategoryId { get; set; } // Updated from int to long
 
         // --- Scheduled Post Date ---
         // Leave null to publish immediately (UTC Now)
@@ -137,7 +137,7 @@ namespace API_Ecommerce.DTOs
         public int StockQuantity { get; set; }
 
         [Required(ErrorMessage = "Category ID is required.")]
-        public int CategoryId { get; set; }
+        public long CategoryId { get; set; } // Updated from int to long
 
         public ProductStatus Status { get; set; }
 
