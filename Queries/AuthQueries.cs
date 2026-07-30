@@ -16,7 +16,6 @@ namespace API_Ecommerce.Queries
             _context = context;
         }
 
-        // Helper to get and automatically open connection if it's closed
         private async Task<IDbConnection> GetOpenConnectionAsync()
         {
             var connection = _context.Database.GetDbConnection();
@@ -28,7 +27,7 @@ namespace API_Ecommerce.Queries
         }
 
         /// <summary>
-        /// Retrieves a single user/auth record by ID using Raw SQL.
+        /// Retrieves a single user record by ID including Addresses using Dapper.
         /// </summary>
         public async Task<AuthResponseDto?> GetByIdAsync(long id)
         {
@@ -37,19 +36,42 @@ namespace API_Ecommerce.Queries
                     Id AS UserId,
                     FullName,
                     Email,
-                    Role,
+                    CAST(Role AS NVARCHAR(50)) AS Role,
                     ShopName,
                     Status,
                     ProfileImageUrl
                 FROM Auths
-                WHERE Id = @Id;";
+                WHERE Id = @Id;
+
+                SELECT 
+                    Id,
+                    AddressType,
+                    StreetAddress,
+                    City,
+                    State,
+                    PostalCode,
+                    Country,
+                    IsDefault,
+                    CreatedAt,
+                    UpdatedAt
+                FROM Addresses
+                WHERE UserId = @Id;";
 
             using var connection = await GetOpenConnectionAsync();
-            return await connection.QueryFirstOrDefaultAsync<AuthResponseDto>(sql, new { Id = id });
+            using var multi = await connection.QueryMultipleAsync(sql, new { Id = id });
+
+            var user = await multi.ReadFirstOrDefaultAsync<AuthResponseDto>();
+            if (user != null)
+            {
+                var addresses = (await multi.ReadAsync<AddressResponseDto>()).ToList();
+                user.Addresses = addresses;
+            }
+
+            return user;
         }
 
         /// <summary>
-        /// Retrieves a user by Email using Raw SQL.
+        /// Retrieves a user by Email including Addresses using Dapper.
         /// </summary>
         public async Task<AuthResponseDto?> GetByEmailAsync(string email)
         {
@@ -58,61 +80,106 @@ namespace API_Ecommerce.Queries
                     Id AS UserId,
                     FullName,
                     Email,
-                    Role,
+                    CAST(Role AS NVARCHAR(50)) AS Role,
                     ShopName,
                     Status,
                     ProfileImageUrl
                 FROM Auths
-                WHERE LOWER(Email) = LOWER(@Email);";
+                WHERE LOWER(Email) = LOWER(@Email);
+
+                SELECT 
+                    a.Id,
+                    a.AddressType,
+                    a.StreetAddress,
+                    a.City,
+                    a.State,
+                    a.PostalCode,
+                    a.Country,
+                    a.IsDefault,
+                    a.CreatedAt,
+                    a.UpdatedAt
+                FROM Addresses a
+                INNER JOIN Auths u ON a.UserId = u.Id
+                WHERE LOWER(u.Email) = LOWER(@Email);";
 
             using var connection = await GetOpenConnectionAsync();
-            return await connection.QueryFirstOrDefaultAsync<AuthResponseDto>(sql, new { Email = email });
+            using var multi = await connection.QueryMultipleAsync(sql, new { Email = email });
+
+            var user = await multi.ReadFirstOrDefaultAsync<AuthResponseDto>();
+            if (user != null)
+            {
+                var addresses = (await multi.ReadAsync<AddressResponseDto>()).ToList();
+                user.Addresses = addresses;
+            }
+
+            return user;
         }
 
         /// <summary>
-        /// Retrieves all sellers using Raw SQL.
+        /// Retrieves all sellers including their addresses.
         /// </summary>
         public async Task<IEnumerable<AuthResponseDto>> GetAllSellersAsync()
         {
             const string sql = @"
                 SELECT 
-                    Id AS UserId,
-                    FullName,
-                    Email,
-                    Role,
-                    ShopName,
-                    Status,
-                    ProfileImageUrl
-                FROM Auths
-                WHERE CAST(Role AS NVARCHAR(50)) IN ('Seller', '1')
-                ORDER BY CreatedAt DESC;";
+                    u.Id AS UserId,
+                    u.FullName,
+                    u.Email,
+                    CAST(u.Role AS NVARCHAR(50)) AS Role,
+                    u.ShopName,
+                    u.Status,
+                    u.ProfileImageUrl,
+                    a.Id,
+                    a.AddressType,
+                    a.StreetAddress,
+                    a.City,
+                    a.State,
+                    a.PostalCode,
+                    a.Country,
+                    a.IsDefault,
+                    a.CreatedAt,
+                    a.UpdatedAt
+                FROM Auths u
+                LEFT JOIN Addresses a ON u.Id = a.UserId
+                WHERE CAST(u.Role AS NVARCHAR(50)) IN ('Seller', '1')
+                ORDER BY u.CreatedAt DESC;";
 
             using var connection = await GetOpenConnectionAsync();
-            return await connection.QueryAsync<AuthResponseDto>(sql);
+            return await MapUsersWithAddressesAsync(connection, sql);
         }
 
         /// <summary>
-        /// Retrieves all users with optional status filtering using Raw SQL.
+        /// Retrieves all users with optional status filtering including their addresses.
         /// </summary>
         public async Task<IEnumerable<AuthResponseDto>> GetAllUsersAsync(AuthStatus? status = null)
         {
             var sql = @"
                 SELECT 
-                    Id AS UserId,
-                    FullName,
-                    Email,
-                    Role,
-                    ShopName,
-                    Status,
-                    ProfileImageUrl
-                FROM Auths";
+                    u.Id AS UserId,
+                    u.FullName,
+                    u.Email,
+                    CAST(u.Role AS NVARCHAR(50)) AS Role,
+                    u.ShopName,
+                    u.Status,
+                    u.ProfileImageUrl,
+                    a.Id,
+                    a.AddressType,
+                    a.StreetAddress,
+                    a.City,
+                    a.State,
+                    a.PostalCode,
+                    a.Country,
+                    a.IsDefault,
+                    a.CreatedAt,
+                    a.UpdatedAt
+                FROM Auths u
+                LEFT JOIN Addresses a ON u.Id = a.UserId";
 
             object? parameters = null;
 
             if (status.HasValue)
             {
-                // Handles both DB storage types: matching integer ID (e.g. 0) or string name ("Active")
-                sql += " WHERE (Status = @StatusValue OR LOWER(CAST(Status AS NVARCHAR(50))) = LOWER(@StatusName))";
+                sql += " WHERE (u.Status = @StatusValue OR LOWER(CAST(u.Status AS NVARCHAR(50))) = LOWER(@StatusName))";
                 parameters = new
                 {
                     StatusValue = (int)status.Value,
@@ -120,10 +187,42 @@ namespace API_Ecommerce.Queries
                 };
             }
 
-            sql += " ORDER BY CreatedAt DESC;";
+            sql += " ORDER BY u.CreatedAt DESC;";
 
             using var connection = await GetOpenConnectionAsync();
-            return await connection.QueryAsync<AuthResponseDto>(sql, parameters);
+            return await MapUsersWithAddressesAsync(connection, sql, parameters);
+        }
+
+        private async Task<IEnumerable<AuthResponseDto>> MapUsersWithAddressesAsync(
+            IDbConnection connection,
+            string sql,
+            object? parameters = null)
+        {
+            var userDictionary = new Dictionary<long, AuthResponseDto>();
+
+            var result = await connection.QueryAsync<AuthResponseDto, AddressResponseDto, AuthResponseDto>(
+                sql,
+                (user, address) =>
+                {
+                    if (!userDictionary.TryGetValue(user.UserId, out var currentUser))
+                    {
+                        currentUser = user;
+                        currentUser.Addresses = new List<AddressResponseDto>();
+                        userDictionary.Add(currentUser.UserId, currentUser);
+                    }
+
+                    if (address != null && address.Id > 0)
+                    {
+                        currentUser.Addresses.Add(address);
+                    }
+
+                    return currentUser;
+                },
+                parameters,
+                splitOn: "Id"
+            );
+
+            return userDictionary.Values;
         }
     }
 }
