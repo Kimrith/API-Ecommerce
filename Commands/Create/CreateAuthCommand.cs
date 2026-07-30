@@ -60,7 +60,6 @@ namespace API_Ecommerce.Commands.Create
                 Status = authUser.Status,
                 ProfileImageUrl = authUser.ProfileImageUrl,
                 Token = token,
-                Addresses = new List<AddressResponseDto>() // Freshly registered users have no addresses yet
             };
         }
 
@@ -97,7 +96,6 @@ namespace API_Ecommerce.Commands.Create
                 Addresses = user.Addresses.Select(a => new AddressResponseDto
                 {
                     Id = a.Id,
-                    UserId = a.UserId,
                     AddressType = a.AddressType,
                     StreetAddress = a.StreetAddress,
                     City = a.City,

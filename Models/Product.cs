@@ -52,6 +52,9 @@ namespace API_Ecommerce.Models
         [ForeignKey(nameof(SellerId))]
         public virtual Auth? Seller { get; set; }
 
+        // --- Navigation to Variants ---
+        public virtual ICollection<ProductVariants> Variants { get; set; } = new List<ProductVariants>();
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
     }

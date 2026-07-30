@@ -64,7 +64,6 @@ namespace API_Ecommerce.DTOs
     public class AddressResponseDto
     {
         public long Id { get; set; }
-        public long UserId { get; set; }
 
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public AddressType AddressType { get; set; }
@@ -77,5 +76,10 @@ namespace API_Ecommerce.DTOs
         public bool IsDefault { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+    }
+
+    public class UserAddressResponseDto : AddressResponseDto
+    {
+        public long UserId { get; set; }
     }
 }

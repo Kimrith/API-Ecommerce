@@ -47,6 +47,9 @@ builder.Services.AddScoped<CreateAddressCommand>();
 builder.Services.AddScoped<UpdateAddressCommand>();
 builder.Services.AddScoped<DeleteAddressCommand>();
 
+// ProductVariants 
+builder.Services.AddScoped<ProductVariantQueries>();
+
 // Token & Infrastructure Services
 builder.Services.AddScoped<ITokenService, TokenService>();
 
