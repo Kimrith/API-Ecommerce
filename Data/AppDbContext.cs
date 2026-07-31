@@ -39,6 +39,8 @@ namespace API_Ecommerce.Data
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
 
+        public DbSet<SellerBakongConfigs> SellerBakongConfigs { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
