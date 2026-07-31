@@ -3453,24 +3453,31 @@
     ]
   },
   "packageFolders": {
-    "/Users/apple/.nuget/packages/": {}
+    "C:\\Users\\ASUS\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/apple/ecomerce/API-Ecommerce/API-Ecommerce.csproj",
+      "projectUniqueName": "D:\\setec year4\\Ecommerce\\API-Ecommerce\\API-Ecommerce\\API-Ecommerce.csproj",
       "projectName": "API-Ecommerce",
-      "projectPath": "/Users/apple/ecomerce/API-Ecommerce/API-Ecommerce.csproj",
-      "packagesPath": "/Users/apple/.nuget/packages/",
-      "outputPath": "/Users/apple/ecomerce/API-Ecommerce/obj/",
+      "projectPath": "D:\\setec year4\\Ecommerce\\API-Ecommerce\\API-Ecommerce\\API-Ecommerce.csproj",
+      "packagesPath": "C:\\Users\\ASUS\\.nuget\\packages\\",
+      "outputPath": "D:\\setec year4\\Ecommerce\\API-Ecommerce\\API-Ecommerce\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
-        "/Users/apple/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\ASUS\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -3567,7 +3574,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/10.0.301/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.302/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
@@ -3990,8 +3997,8 @@
       "code": "NU1510",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "PackageReference Microsoft.Extensions.Configuration.FileExtensions will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.",
-      "libraryId": "Microsoft.Extensions.Configuration.FileExtensions",
+      "message": "PackageReference Microsoft.Extensions.Configuration.Json will not be pruned. This package is automatically available and does not need to be referenced explicitly. Remove the PackageReference item.",
+      "libraryId": "Microsoft.Extensions.Configuration.Json",
       "targetGraphs": [
         "net10.0"
       ]
@@ -4000,8 +4007,8 @@
       "code": "NU1510",
       "level": "Warning",
       "warningLevel": 1,
-      "message": "PackageReference Microsoft.Extensions.Configuration.Json will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.",
-      "libraryId": "Microsoft.Extensions.Configuration.Json",
+      "message": "PackageReference Microsoft.Extensions.Configuration.FileExtensions will not be pruned. This package is automatically available and does not need to be referenced explicitly. Remove the PackageReference item.",
+      "libraryId": "Microsoft.Extensions.Configuration.FileExtensions",
       "targetGraphs": [
         "net10.0"
       ]
