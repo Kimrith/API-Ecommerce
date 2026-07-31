@@ -7,6 +7,7 @@ namespace API_Ecommerce.Enums
         Shipped = 2,
         Delivered = 3,
         Cancelled = 4,
-        Refunded = 5
+        Refunded = 5,
+        Suspended = 6
     }
 }
