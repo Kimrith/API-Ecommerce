@@ -3,6 +3,7 @@ using API_Ecommerce.DTOs;
 using API_Ecommerce.Models;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using CartModel = API_Ecommerce.Models.Cart;
 
 namespace API_Ecommerce.Commands.Update
 {
@@ -11,7 +12,7 @@ namespace API_Ecommerce.Commands.Update
         long? UserId,
         string? SessionId,
         long CartItemId,
-        CartItemDtos.UpdateQuantity UpdateDto
+        CartItemDtos.UpdateQuantity Dto
     ) : IRequest<CartDtos.Response>;
 
     // 2. COMMAND HANDLER
@@ -29,11 +30,11 @@ namespace API_Ecommerce.Commands.Update
             // Validate identity inputs
             if (!request.UserId.HasValue && string.IsNullOrWhiteSpace(request.SessionId))
             {
-                throw new ArgumentException("Either UserId or SessionId must be provided to update a cart item.");
+                throw new ArgumentException("Either UserId or SessionId must be provided to update an item in the cart.");
             }
 
             // 1. Fetch existing cart (Prioritize UserId, fallback to SessionId)
-            Cart? cart = null;
+            CartModel? cart = null;
 
             if (request.UserId.HasValue)
             {
@@ -54,15 +55,15 @@ namespace API_Ecommerce.Commands.Update
                 throw new KeyNotFoundException("Cart not found.");
             }
 
-            // 2. Find the target cart item
+            // 2. Find the cart item to update
             var cartItem = cart.CartItems.FirstOrDefault(i => i.Id == request.CartItemId);
             if (cartItem == null)
             {
                 throw new KeyNotFoundException($"Cart item with ID {request.CartItemId} was not found in the cart.");
             }
 
-            // 3. Update item quantity and cart timestamp
-            cartItem.Quantity = request.UpdateDto.Quantity;
+            // 3. Update quantity & timestamp
+            cartItem.Quantity = Math.Min(99, Math.Max(1, request.Dto.Quantity));
             cart.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -74,6 +75,8 @@ namespace API_Ecommerce.Commands.Update
                 .Include(c => c.CartItems)
                     .ThenInclude(i => i.Variant)
                 .FirstAsync(c => c.Id == cart.Id, cancellationToken);
+
+            decimal subtotal = updatedCart.CartItems.Sum(i => i.Quantity * i.Price);
 
             return new CartDtos.Response
             {
@@ -94,7 +97,10 @@ namespace API_Ecommerce.Commands.Update
                     Quantity = i.Quantity,
                     Price = i.Price
                 }).ToList(),
-                TotalAmount = updatedCart.CartItems.Sum(i => i.Quantity * i.Price)
+                SubtotalAmount = subtotal,
+                AppliedCouponCode = updatedCart.AppliedCouponCode,
+                DiscountAmount = updatedCart.DiscountAmount,
+                TotalAmount = updatedCart.TotalAmount > 0 ? updatedCart.TotalAmount : subtotal
             };
         }
     }

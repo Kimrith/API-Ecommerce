@@ -3,6 +3,7 @@ using API_Ecommerce.DTOs;
 using API_Ecommerce.Models;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using CartModel = API_Ecommerce.Models.Cart;
 
 namespace API_Ecommerce.Commands.Create
 {
@@ -49,12 +50,11 @@ namespace API_Ecommerce.Commands.Create
                     throw new KeyNotFoundException($"Variant with ID {request.CartItemDto.VariantId.Value} was not found.");
                 }
 
-                // Corrected to Title based on ProductVariants entity definition
                 variantTitle = variant.Title;
             }
 
             // 2. Fetch existing cart (Prioritize UserId, fallback to SessionId)
-            Cart? cart = null;
+            CartModel? cart = null;
 
             if (request.UserId.HasValue)
             {
@@ -73,7 +73,7 @@ namespace API_Ecommerce.Commands.Create
             // 3. Lazy-Create Cart if missing
             if (cart == null)
             {
-                cart = new Cart
+                cart = new CartModel
                 {
                     UserId = request.UserId,
                     SessionId = request.UserId.HasValue ? null : request.SessionId,
@@ -127,6 +127,8 @@ namespace API_Ecommerce.Commands.Create
                     .ThenInclude(i => i.Variant)
                 .FirstAsync(c => c.Id == cart.Id, cancellationToken);
 
+            decimal subtotal = updatedCart.CartItems.Sum(i => i.Quantity * i.Price);
+
             return new CartDtos.Response
             {
                 Id = updatedCart.Id,
@@ -142,11 +144,14 @@ namespace API_Ecommerce.Commands.Create
                     ProductName = i.Product?.Name ?? product.Name,
                     ProductImageUrl = i.Product?.ImageUrl ?? product.ImageUrl,
                     VariantId = i.VariantId,
-                    VariantName = i.Variant?.Title ?? variantTitle, // Maps Title -> VariantName in DTO
+                    VariantName = i.Variant?.Title ?? variantTitle,
                     Quantity = i.Quantity,
                     Price = i.Price
                 }).ToList(),
-                TotalAmount = updatedCart.CartItems.Sum(i => i.Quantity * i.Price)
+                SubtotalAmount = subtotal,
+                AppliedCouponCode = updatedCart.AppliedCouponCode,
+                DiscountAmount = updatedCart.DiscountAmount,
+                TotalAmount = updatedCart.TotalAmount > 0 ? updatedCart.TotalAmount : subtotal
             };
         }
     }

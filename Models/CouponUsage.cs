@@ -1,3 +1,5 @@
+using API_Ecommerce.DTOs;
+using API_Ecommerce.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 

@@ -3,6 +3,7 @@ using API_Ecommerce.DTOs;
 using API_Ecommerce.Models;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using CartModel = API_Ecommerce.Models.Cart;
 
 namespace API_Ecommerce.Commands.Delete
 {
@@ -32,7 +33,7 @@ namespace API_Ecommerce.Commands.Delete
             }
 
             // 1. Fetch existing cart (Prioritize UserId, fallback to SessionId)
-            Cart? cart = null;
+            CartModel? cart = null;
 
             if (request.UserId.HasValue)
             {
@@ -74,6 +75,8 @@ namespace API_Ecommerce.Commands.Delete
                     .ThenInclude(i => i.Variant)
                 .FirstAsync(c => c.Id == cart.Id, cancellationToken);
 
+            decimal subtotal = updatedCart.CartItems.Sum(i => i.Quantity * i.Price);
+
             return new CartDtos.Response
             {
                 Id = updatedCart.Id,
@@ -93,7 +96,10 @@ namespace API_Ecommerce.Commands.Delete
                     Quantity = i.Quantity,
                     Price = i.Price
                 }).ToList(),
-                TotalAmount = updatedCart.CartItems.Sum(i => i.Quantity * i.Price)
+                SubtotalAmount = subtotal,
+                AppliedCouponCode = updatedCart.AppliedCouponCode,
+                DiscountAmount = updatedCart.DiscountAmount,
+                TotalAmount = updatedCart.TotalAmount > 0 ? updatedCart.TotalAmount : subtotal
             };
         }
     }
