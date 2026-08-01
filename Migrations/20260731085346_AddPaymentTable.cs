@@ -5,7 +5,7 @@
 namespace API_Ecommerce.Migrations
 {
     /// <inheritdoc />
-    public partial class erty : Migration
+    public partial class AddPaymentTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

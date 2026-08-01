@@ -14,7 +14,8 @@ namespace API_Ecommerce.Commands.Create
             _context = context;
         }
 
-        public async Task<AddressResponseDto> ExecuteAsync(long userId, CreateAddressDto dto)
+        // Changed return type from AddressResponseDto to UserAddressResponseDto
+        public async Task<UserAddressResponseDto> ExecuteAsync(long userId, CreateAddressDto dto)
         {
             // 1. Verify that the user exists
             var userExists = await _context.Auths.AnyAsync(u => u.Id == userId);
@@ -23,9 +24,7 @@ namespace API_Ecommerce.Commands.Create
                 throw new KeyNotFoundException($"User with ID {userId} was not found.");
             }
 
-            // 2. Handle Default Address Logic:
-            // If the user sets this address as Default, unmark any existing default addresses for this user.
-            // If this is the user's first address, force it to be default automatically.
+            // 2. Handle Default Address Logic
             var hasExistingAddresses = await _context.Addresses.AnyAsync(a => a.UserId == userId);
 
             if (!hasExistingAddresses)
@@ -63,10 +62,10 @@ namespace API_Ecommerce.Commands.Create
             await _context.SaveChangesAsync();
 
             // 5. Return mapped Response DTO
-            return new AddressResponseDto
+            return new UserAddressResponseDto
             {
                 Id = address.Id,
-                UserId = address.UserId,
+                UserId = address.UserId, // Works seamlessly!
                 AddressType = address.AddressType,
                 StreetAddress = address.StreetAddress,
                 City = address.City,

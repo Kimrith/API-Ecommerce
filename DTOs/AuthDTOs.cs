@@ -36,8 +36,6 @@ namespace API_Ecommerce.DTOs
         // Optional fields for Sellers/Users
         public string? ShopName { get; set; }
 
-        public string? Address { get; set; }
-
         public IFormFile? ProfileImage { get; set; }
     }
 
@@ -88,7 +86,9 @@ namespace API_Ecommerce.DTOs
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
-        public string Token { get; set; } = string.Empty;
+
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Token { get; set; }
 
         public string? ShopName { get; set; }
 

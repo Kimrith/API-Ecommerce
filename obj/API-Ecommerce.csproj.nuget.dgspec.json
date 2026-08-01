@@ -60,6 +60,14 @@
               "target": "Package",
               "version": "[2.1.79, )"
             },
+            "Kh.Gov.Nbc.BakongKHQR": {
+              "target": "Package",
+              "version": "[1.0.0.16, )"
+            },
+            "Kh.Org.Nbc.BakongKHQR": {
+              "target": "Package",
+              "version": "[1.0.0.9, )"
+            },
             "MediatR": {
               "target": "Package",
               "version": "[14.2.0, )"
@@ -93,6 +101,10 @@
             "Microsoft.OpenApi": {
               "target": "Package",
               "version": "[2.7.5, )"
+            },
+            "QRCoder": {
+              "target": "Package",
+              "version": "[1.8.0, )"
             },
             "Scalar.AspNetCore": {
               "target": "Package",

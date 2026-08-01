@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "lFZu37cjsX4=",
+  "dgSpecHash": "tHXMz8BYak4=",
   "success": true,
   "projectFilePath": "D:\\setec year4\\Ecommerce\\API-Ecommerce\\API-Ecommerce\\API-Ecommerce.csproj",
   "expectedPackageFiles": [
@@ -9,6 +9,8 @@
     "C:\\Users\\ASUS\\.nuget\\packages\\bcrypt.net-next\\4.2.0\\bcrypt.net-next.4.2.0.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\dapper\\2.1.79\\dapper.2.1.79.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
+    "C:\\Users\\ASUS\\.nuget\\packages\\kh.gov.nbc.bakongkhqr\\1.0.0.16\\kh.gov.nbc.bakongkhqr.1.0.0.16.nupkg.sha512",
+    "C:\\Users\\ASUS\\.nuget\\packages\\kh.org.nbc.bakongkhqr\\1.0.0.9\\kh.org.nbc.bakongkhqr.1.0.0.9.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\mediatr\\14.2.0\\mediatr.14.2.0.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\mediatr.contracts\\2.0.1\\mediatr.contracts.2.0.1.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\10.0.10\\microsoft.aspnetcore.authentication.jwtbearer.10.0.10.nupkg.sha512",
@@ -44,8 +46,10 @@
     "C:\\Users\\ASUS\\.nuget\\packages\\microsoft.openapi\\2.7.5\\microsoft.openapi.2.7.5.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\microsoft.sqlserver.server\\1.0.0\\microsoft.sqlserver.server.1.0.0.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\microsoft.visualstudio.solutionpersistence\\1.0.52\\microsoft.visualstudio.solutionpersistence.1.0.52.nupkg.sha512",
+    "C:\\Users\\ASUS\\.nuget\\packages\\microsoft.win32.systemevents\\6.0.0\\microsoft.win32.systemevents.6.0.0.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\mono.texttemplating\\3.0.0\\mono.texttemplating.3.0.0.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512",
+    "C:\\Users\\ASUS\\.nuget\\packages\\qrcoder\\1.8.0\\qrcoder.1.8.0.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\scalar.aspnetcore\\2.16.16\\scalar.aspnetcore.2.16.16.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\system.clientmodel\\1.5.1\\system.clientmodel.1.5.1.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\system.codedom\\6.0.0\\system.codedom.6.0.0.nupkg.sha512",
@@ -56,6 +60,7 @@
     "C:\\Users\\ASUS\\.nuget\\packages\\system.composition.runtime\\9.0.0\\system.composition.runtime.9.0.0.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\system.composition.typedparts\\9.0.0\\system.composition.typedparts.9.0.0.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\system.configuration.configurationmanager\\9.0.4\\system.configuration.configurationmanager.9.0.4.nupkg.sha512",
+    "C:\\Users\\ASUS\\.nuget\\packages\\system.drawing.common\\6.0.0\\system.drawing.common.6.0.0.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\system.identitymodel.tokens.jwt\\8.21.0\\system.identitymodel.tokens.jwt.8.21.0.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\system.memory.data\\8.0.1\\system.memory.data.8.0.1.nupkg.sha512",
     "C:\\Users\\ASUS\\.nuget\\packages\\system.security.cryptography.pkcs\\9.0.4\\system.security.cryptography.pkcs.9.0.4.nupkg.sha512",
@@ -65,11 +70,11 @@
     {
       "code": "NU1510",
       "level": "Warning",
-      "message": "PackageReference Microsoft.Extensions.Configuration.Json will not be pruned. This package is automatically available and does not need to be referenced explicitly. Remove the PackageReference item.",
+      "message": "PackageReference Microsoft.Extensions.Configuration.FileExtensions will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.",
       "projectPath": "D:\\setec year4\\Ecommerce\\API-Ecommerce\\API-Ecommerce\\API-Ecommerce.csproj",
       "warningLevel": 1,
       "filePath": "D:\\setec year4\\Ecommerce\\API-Ecommerce\\API-Ecommerce\\API-Ecommerce.csproj",
-      "libraryId": "Microsoft.Extensions.Configuration.Json",
+      "libraryId": "Microsoft.Extensions.Configuration.FileExtensions",
       "targetGraphs": [
         "net10.0"
       ]
@@ -77,11 +82,11 @@
     {
       "code": "NU1510",
       "level": "Warning",
-      "message": "PackageReference Microsoft.Extensions.Configuration.FileExtensions will not be pruned. This package is automatically available and does not need to be referenced explicitly. Remove the PackageReference item.",
+      "message": "PackageReference Microsoft.Extensions.Configuration.Json will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.",
       "projectPath": "D:\\setec year4\\Ecommerce\\API-Ecommerce\\API-Ecommerce\\API-Ecommerce.csproj",
       "warningLevel": 1,
       "filePath": "D:\\setec year4\\Ecommerce\\API-Ecommerce\\API-Ecommerce\\API-Ecommerce.csproj",
-      "libraryId": "Microsoft.Extensions.Configuration.FileExtensions",
+      "libraryId": "Microsoft.Extensions.Configuration.Json",
       "targetGraphs": [
         "net10.0"
       ]

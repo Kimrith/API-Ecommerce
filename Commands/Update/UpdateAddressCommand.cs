@@ -56,7 +56,6 @@ namespace API_Ecommerce.Commands.Update
             return new AddressResponseDto
             {
                 Id = address.Id,
-                UserId = address.UserId,
                 AddressType = address.AddressType,
                 StreetAddress = address.StreetAddress,
                 City = address.City,
