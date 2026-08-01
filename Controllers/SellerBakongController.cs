@@ -1,7 +1,11 @@
-﻿using API_Ecommerce.DTOs;
+﻿using API_Ecommerce.Data;
+using API_Ecommerce.DTOs;
+using API_Ecommerce.Enums;
+using API_Ecommerce.Models;
 using API_Ecommerce.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace API_Ecommerce.Controllers
@@ -13,11 +17,13 @@ namespace API_Ecommerce.Controllers
     {
         private readonly ISellerBakongService _bakongService;
         private readonly IBakongService _bakongKhqrService;
+        private readonly AppDbContext _context;
 
-        public SellerBakongController(ISellerBakongService bakongService, IBakongService bakongKhqrService)
+        public SellerBakongController(ISellerBakongService bakongService, IBakongService bakongKhqrService, AppDbContext context)
         {
             _bakongService = bakongService;
             _bakongKhqrService = bakongKhqrService;
+            _context = context;
         }
 
         private int GetCurrentSellerId()
@@ -36,15 +42,37 @@ namespace API_Ecommerce.Controllers
             try
             {
                 int sellerId = GetCurrentSellerId();
-                var config = await _bakongService.GetConfigBySellerIdAsync(sellerId);
 
+                // 1. Fetch the cart and its items safely for this seller/user
+                var cart = await _context.Carts
+                    .Include(c => c.CartItems)
+                    .ThenInclude(ci => ci.Variant)
+                    .FirstOrDefaultAsync(c => c.UserId == sellerId);
+
+                if (cart == null || cart.CartItems == null || !cart.CartItems.Any())
+                {
+                    return BadRequest(new { message = "The cart is empty or not found." });
+                }
+
+                // 2. Calculate total amount directly from cart items
+                decimal totalAmount = cart.CartItems.Sum(item => item.Quantity * item.Price);
+
+                if (totalAmount <= 0)
+                {
+                    return BadRequest(new { message = "Invalid cart total amount." });
+                }
+
+                // 3. Get Seller Bakong Configuration
+                var config = await _bakongService.GetConfigBySellerIdAsync(sellerId);
                 if (config == null || string.IsNullOrEmpty(config.BakongId))
                 {
                     return BadRequest(new { message = "Please set up your Bakong KHQR configuration first." });
                 }
 
                 string billReference = $"TEST-{DateTime.UtcNow:yyyyMMddHHmmss}";
+                string orderNumber = $"ORD-{DateTime.UtcNow:yyyyMMddHHmmss}";
 
+                // 4. Generate Dynamic KHQR string and MD5 hash
                 var (qrString, md5) = _bakongKhqrService.GenerateDynamicQr(
                     billReference,
                     amount,
@@ -59,6 +87,31 @@ namespace API_Ecommerce.Controllers
                 {
                     return BadRequest(new { message = "Failed to generate Bakong KHQR string." });
                 }
+
+                // 5. Create and Save to your Order & OrderItem tables
+                var order = new Order
+                {
+                    UserId = sellerId,
+                    OrderNumber = orderNumber,
+                    Status = OrderStatus.Pending,
+                    Subtotal = totalAmount,
+                    TotalAmount = totalAmount,
+                    Currency = "USD",
+                    CreatedAt = DateTime.UtcNow,
+                    OrderItems = cart.CartItems.Select(ci => new OrderItem
+                    {
+                        ProductId = ci.ProductId,
+                        VariantId = ci.VariantId,
+                        ProductName = "Product #" + ci.ProductId,
+                        VariantName = ci.Variant?.Title,
+                        Quantity = ci.Quantity,
+                        UnitPrice = ci.Price,
+                        TotalPrice = ci.Quantity * ci.Price
+                    }).ToList()
+                };
+
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync();
 
                 string qrImageBase64 = GenerateQrBase64(qrString);
 
