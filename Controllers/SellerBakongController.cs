@@ -19,10 +19,7 @@ namespace API_Ecommerce.Controllers
         private readonly IBakongService _bakongKhqrService;
         private readonly AppDbContext _context;
 
-        public SellerBakongController(
-            ISellerBakongService bakongService,
-            IBakongService bakongKhqrService,
-            AppDbContext context)
+        public SellerBakongController(ISellerBakongService bakongService, IBakongService bakongKhqrService, AppDbContext context)
         {
             _bakongService = bakongService;
             _bakongKhqrService = bakongKhqrService;
@@ -39,18 +36,18 @@ namespace API_Ecommerce.Controllers
             return sellerId;
         }
 
-        [HttpPost("generate-qr-from-cart")]
-        public async Task<IActionResult> GenerateQrFromCart([FromQuery] long userId)
+        [HttpGet("generate-qr")]
+        public async Task<IActionResult> GenerateMyQrCode([FromQuery] decimal amount)
         {
             try
             {
                 int sellerId = GetCurrentSellerId();
 
-                // 1. Fetch the cart and its items safely without strict product navigation requirement
+                // 1. Fetch the cart and its items safely for this seller/user
                 var cart = await _context.Carts
                     .Include(c => c.CartItems)
                     .ThenInclude(ci => ci.Variant)
-                    .FirstOrDefaultAsync(c => c.UserId == userId);
+                    .FirstOrDefaultAsync(c => c.UserId == sellerId);
 
                 if (cart == null || cart.CartItems == null || !cart.CartItems.Any())
                 {
@@ -72,12 +69,13 @@ namespace API_Ecommerce.Controllers
                     return BadRequest(new { message = "Please set up your Bakong KHQR configuration first." });
                 }
 
+                string billReference = $"TEST-{DateTime.UtcNow:yyyyMMddHHmmss}";
                 string orderNumber = $"ORD-{DateTime.UtcNow:yyyyMMddHHmmss}";
 
                 // 4. Generate Dynamic KHQR string and MD5 hash
                 var (qrString, md5) = _bakongKhqrService.GenerateDynamicQr(
-                    orderNumber,
-                    totalAmount,
+                    billReference,
+                    amount,
                     config.BakongId,
                     config.MerchantName,
                     config.MerchantCity,
@@ -93,7 +91,7 @@ namespace API_Ecommerce.Controllers
                 // 5. Create and Save to your Order & OrderItem tables
                 var order = new Order
                 {
-                    UserId = userId,
+                    UserId = sellerId,
                     OrderNumber = orderNumber,
                     Status = OrderStatus.Pending,
                     Subtotal = totalAmount,
@@ -104,7 +102,7 @@ namespace API_Ecommerce.Controllers
                     {
                         ProductId = ci.ProductId,
                         VariantId = ci.VariantId,
-                        ProductName = "Product #" + ci.ProductId, // Fallback safe name if product join isn't loaded
+                        ProductName = "Product #" + ci.ProductId,
                         VariantName = ci.Variant?.Title,
                         Quantity = ci.Quantity,
                         UnitPrice = ci.Price,
@@ -119,9 +117,10 @@ namespace API_Ecommerce.Controllers
 
                 return Ok(new
                 {
-                    orderNumber = orderNumber,
-                    totalAmount = totalAmount,
-                    itemsCount = cart.CartItems.Count,
+                    sellerId = sellerId,
+                    bakongId = config.BakongId,
+                    merchantName = config.MerchantName,
+                    amount = amount,
                     khqrString = qrString,
                     qrImageBase64 = qrImageBase64,
                     md5 = md5
