@@ -13,12 +13,8 @@ namespace API_Ecommerce.Queries
             _context = context;
         }
 
-        /// <summary>
-        /// Retrieves all addresses for a user using Raw T-SQL, ordered with default address first.
-        /// </summary>
-        public async Task<List<AddressResponseDto>> GetAddressesByUserIdAsync(long userId)
+        public async Task<List<UserAddressResponseDto>> GetAddressesByUserIdAsync(long userId)
         {
-            // Execute raw SELECT using string interpolation for SQL injection safety
             var items = await _context.Addresses
                 .FromSqlInterpolated($@"
                     SELECT 
@@ -39,14 +35,10 @@ namespace API_Ecommerce.Queries
                 .AsNoTracking()
                 .ToListAsync();
 
-            // Map EF Entity models to DTOs
-            return items.Select(MapToDto).ToList();
+            return items.Select(MapToUserAddressDto).ToList();
         }
 
-        /// <summary>
-        /// Retrieves a specific address by ID using Raw T-SQL.
-        /// </summary>
-        public async Task<AddressResponseDto?> GetAddressByIdAsync(long addressId, long userId)
+        public async Task<UserAddressResponseDto?> GetAddressByIdAsync(long addressId, long userId)
         {
             var item = await _context.Addresses
                 .FromSqlInterpolated($@"
@@ -67,39 +59,12 @@ namespace API_Ecommerce.Queries
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
 
-            return item == null ? null : MapToDto(item);
+            return item == null ? null : MapToUserAddressDto(item);
         }
 
-        /// <summary>
-        /// Retrieves the default address for a user using Raw T-SQL.
-        /// </summary>
-        public async Task<AddressResponseDto?> GetDefaultAddressByUserIdAsync(long userId)
+        private static UserAddressResponseDto MapToUserAddressDto(Models.Address a)
         {
-            var item = await _context.Addresses
-                .FromSqlInterpolated($@"
-                    SELECT TOP (1) 
-                        Id, 
-                        UserId, 
-                        AddressType, 
-                        StreetAddress, 
-                        City, 
-                        State, 
-                        PostalCode, 
-                        Country, 
-                        IsDefault, 
-                        CreatedAt, 
-                        UpdatedAt 
-                    FROM dbo.Addresses 
-                    WHERE UserId = {userId} AND IsDefault = 1")
-                .AsNoTracking()
-                .FirstOrDefaultAsync();
-
-            return item == null ? null : MapToDto(item);
-        }
-
-        private static AddressResponseDto MapToDto(Models.Address a)
-        {
-            return new AddressResponseDto
+            return new UserAddressResponseDto
             {
                 Id = a.Id,
                 UserId = a.UserId,

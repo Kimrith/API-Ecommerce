@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
+using API_Ecommerce.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,8 +48,16 @@ builder.Services.AddScoped<CreateAddressCommand>();
 builder.Services.AddScoped<UpdateAddressCommand>();
 builder.Services.AddScoped<DeleteAddressCommand>();
 
+// ProductVariants 
+builder.Services.AddScoped<ProductVariantQueries>();
+
 // Token & Infrastructure Services
 builder.Services.AddScoped<ITokenService, TokenService>();
+
+builder.Services.Configure<BakongSettings>(builder.Configuration.GetSection("Bakong"));
+builder.Services.AddHttpClient<IBakongService, BakongService>();
+
+builder.Services.AddScoped<ISellerBakongService, SellerBakongService>();
 
 // ==========================================
 // 4. JWT Authentication Setup
