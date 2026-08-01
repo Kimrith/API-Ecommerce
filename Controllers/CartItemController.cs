@@ -1,4 +1,5 @@
-﻿using API_Ecommerce.Commands.Create;
+﻿using API_Ecommerce.Commands.Cart;
+using API_Ecommerce.Commands.Create;
 using API_Ecommerce.Commands.Delete;
 using API_Ecommerce.Commands.Update;
 using API_Ecommerce.DTOs;
@@ -87,6 +88,40 @@ namespace API_Ecommerce.Controllers
             var response = await _mediator.Send(command);
 
             return Ok(response);
+        }
+
+        // =========================================================
+        // APPLY COUPON TO CART
+        // POST: api/cart/coupon
+        // =========================================================
+        [HttpPost("coupon")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ApplyCouponToCart([FromBody] CouponDtos.Apply model)
+        {
+            var (userId, sessionId) = GetUserOrSessionIdentity();
+
+            if (!userId.HasValue && string.IsNullOrWhiteSpace(sessionId))
+            {
+                return BadRequest(new { message = "No active cart session found." });
+            }
+
+            try
+            {
+                var command = new ApplyCouponToCartCommand(userId, sessionId, model.Code);
+                var updatedCart = await _mediator.Send(command);
+
+                return Ok(updatedCart);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         // --- HELPER METHOD ---

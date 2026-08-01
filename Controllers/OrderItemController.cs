@@ -30,12 +30,12 @@ namespace API_Ecommerce.Controllers
         public async Task<IActionResult> GetItemsByOrderId(long orderId)
         {
             var userId = GetCurrentUserId();
-            var isAdmin = User.IsInRole("Admin");
+            var isPrivileged = User.IsInRole("Admin") || User.IsInRole("Seller");
 
-            // Regular users are locked to their own UserId; Admins pass null to view any order's items
+            // Admins and Sellers pass null to view the order's items; regular users are locked to their own UserId
             var query = new OrderItemQueries.GetOrderItemsByOrderIdQuery(
                 orderId,
-                isAdmin ? null : userId
+                isPrivileged ? null : userId
             );
 
             var items = await _mediator.Send(query);

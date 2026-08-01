@@ -44,13 +44,18 @@ namespace API_Ecommerce.Queries
                 IF @TargetCartId IS NOT NULL
                 BEGIN
                     SELECT 
+                        -- Cart Fields (First Entity)
                         c.Id AS Id,
                         c.UserId AS UserId,
                         c.SessionId AS SessionId,
                         c.CreatedAt AS CreatedAt,
                         c.UpdatedAt AS UpdatedAt,
                         c.ExpiresAt AS ExpiresAt,
+                        c.AppliedCouponCode AS AppliedCouponCode,
+                        c.DiscountAmount AS DiscountAmount,
+                        c.TotalAmount AS TotalAmount,
                         
+                        -- Cart Item Fields (Second Entity - Dapper splits on 'Id')
                         ci.Id AS Id,
                         ci.ProductId AS ProductId,
                         ISNULL(p.Name, '') AS ProductName,
@@ -72,7 +77,11 @@ namespace API_Ecommerce.Queries
                 sql,
                 (cart, item) =>
                 {
-                    cartResponse ??= cart;
+                    if (cartResponse == null)
+                    {
+                        cartResponse = cart;
+                        cartResponse.Items = new List<CartItemDtos.Response>();
+                    }
 
                     if (item != null && item.Id != 0)
                     {
@@ -86,12 +95,18 @@ namespace API_Ecommerce.Queries
                     UserId = request.UserId,
                     SessionId = request.SessionId
                 },
-                splitOn: "Id"
+                splitOn: "Id" // Matches the second 'Id' column alias to split entities correctly
             );
 
-            if (cartResponse != null)
+            if (cartResponse != null && cartResponse.Items.Count > 0)
             {
-                cartResponse.TotalAmount = cartResponse.Items.Sum(i => i.Quantity * i.Price);
+                cartResponse.SubtotalAmount = cartResponse.Items.Sum(i => i.Quantity * i.Price);
+
+                // If TotalAmount wasn't stored/calculated in DB yet, fallback to Subtotal - Discount
+                if (cartResponse.TotalAmount <= 0)
+                {
+                    cartResponse.TotalAmount = Math.Max(0, cartResponse.SubtotalAmount - cartResponse.DiscountAmount);
+                }
             }
 
             return cartResponse ?? new CartDtos.Response();
