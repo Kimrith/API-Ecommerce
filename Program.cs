@@ -51,6 +51,9 @@ builder.Services.AddScoped<DeleteAddressCommand>();
 // ProductVariants 
 builder.Services.AddScoped<ProductVariantQueries>();
 
+// Favorite
+builder.Services.AddScoped<FavoriteQueries>();
+
 // Token & Infrastructure Services
 builder.Services.AddScoped<ITokenService, TokenService>();
 
