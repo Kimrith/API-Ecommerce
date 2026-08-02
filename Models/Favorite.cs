@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore; // Required for [Index]
 
 namespace API_Ecommerce.Models
 {
     [Table("favorites")]
+    [Index(nameof(UserId), nameof(ProductId), IsUnique = true)] // Prevents duplicate favorites
     public class Favorite
     {
         [Key]
