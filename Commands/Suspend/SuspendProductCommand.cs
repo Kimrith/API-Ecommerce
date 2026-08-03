@@ -25,10 +25,11 @@ namespace API_Ecommerce.Commands
 
         public async Task<ProductResponseDto> Handle(SuspendProductCommand request, CancellationToken cancellationToken)
         {
-            // 1. Fetch product with category and seller details
+            // 1. Fetch product with category, seller, and inventory details
             var product = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Seller)
+                .Include(p => p.Inventory)
                 .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
 
             if (product == null)
@@ -55,7 +56,7 @@ namespace API_Ecommerce.Commands
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            // 5. Return updated ProductResponseDto
+            // 5. Return updated ProductResponseDto pulling from Inventory
             return new ProductResponseDto
             {
                 Id = product.Id,
@@ -63,9 +64,14 @@ namespace API_Ecommerce.Commands
                 Slug = product.Slug,
                 Description = product.Description,
                 Price = product.Price,
-                StockQuantity = product.StockQuantity,
+                DiscountPrice = product.DiscountPrice,
+                DiscountStartDate = product.DiscountStartDate,
+                DiscountEndDate = product.DiscountEndDate,
+                StockQuantity = product.Inventory?.Quantity ?? 0,
+                AvailableQuantity = product.Inventory?.AvailableQuantity ?? 0,
                 ImageUrl = product.ImageUrl,
                 Status = product.Status,
+                PublishAt = product.PublishAt,
                 CategoryId = product.CategoryId,
                 CategoryName = product.Category?.Name ?? string.Empty,
                 SellerId = product.SellerId,

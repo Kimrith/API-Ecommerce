@@ -30,10 +30,11 @@ namespace API_Ecommerce.Commands
         {
             var dto = request.Dto;
 
-            // 1. Fetch product with related entities
+            // 1. Fetch product with related entities (including Inventory)
             var product = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Seller)
+                .Include(p => p.Inventory)
                 .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
 
             if (product == null)
@@ -80,20 +81,16 @@ namespace API_Ecommerce.Commands
             // 5. Replace Image if new file provided
             if (dto.Image != null && dto.Image.Length > 0)
             {
-                // Delete old image file from storage if it exists
                 DeleteImageFile(product.ImageUrl);
-
-                // Save new image
                 product.ImageUrl = await SaveImageAsync(dto.Image);
             }
 
-            // 6. Update remaining fields (including discounts & scheduled publishing)
+            // 6. Update remaining fields (StockQuantity is managed via Inventory model)
             product.Description = dto.Description;
             product.Price = dto.Price;
             product.DiscountPrice = dto.DiscountPrice;
             product.DiscountStartDate = dto.DiscountStartDate;
             product.DiscountEndDate = dto.DiscountEndDate;
-            product.StockQuantity = dto.StockQuantity;
             product.Status = dto.Status;
 
             if (dto.PublishAt.HasValue)
@@ -114,7 +111,7 @@ namespace API_Ecommerce.Commands
 
             var sellerName = product.Seller?.FullName ?? "Unknown";
 
-            // 8. Return Response DTO
+            // 8. Return Response DTO utilizing Inventory
             return new ProductResponseDto
             {
                 Id = product.Id,
@@ -125,7 +122,8 @@ namespace API_Ecommerce.Commands
                 DiscountPrice = product.DiscountPrice,
                 DiscountStartDate = product.DiscountStartDate,
                 DiscountEndDate = product.DiscountEndDate,
-                StockQuantity = product.StockQuantity,
+                StockQuantity = product.Inventory?.Quantity ?? 0,
+                AvailableQuantity = product.Inventory?.AvailableQuantity ?? 0,
                 ImageUrl = product.ImageUrl,
                 Status = product.Status,
                 PublishAt = product.PublishAt,

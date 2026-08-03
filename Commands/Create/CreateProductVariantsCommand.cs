@@ -1,7 +1,7 @@
 using MediatR;
 using API_Ecommerce.DTOs;
 using API_Ecommerce.Models;
-using API_Ecommerce.Data; // Adjust to your DbContext namespace
+using API_Ecommerce.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace API_Ecommerce.Commands.Create
@@ -32,7 +32,7 @@ namespace API_Ecommerce.Commands.Create
                 return null; // Or throw a NotFoundException depending on your error handling setup
             }
 
-            // 2. Map DTO to Entity
+            // 2. Map DTO to Entity (StockQuantity removed from ProductVariants)
             var variant = new ProductVariants
             {
                 ProductId = dto.ProductId,
@@ -40,7 +40,6 @@ namespace API_Ecommerce.Commands.Create
                 Sku = dto.Sku,
                 Price = dto.Price,
                 DiscountPrice = dto.DiscountPrice,
-                StockQuantity = dto.StockQuantity,
                 ImageUrl = dto.ImageUrl,
                 Size = dto.Size,
                 Color = dto.Color,
@@ -48,11 +47,24 @@ namespace API_Ecommerce.Commands.Create
                 CreatedAt = DateTime.UtcNow
             };
 
-            // 3. Save to database
+            // 3. Save variant to database to generate ID
             await _context.ProductVariants.AddAsync(variant, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
-            // 4. Map Entity to Response DTO
+            // 4. Create the Inventory record using InitialStock
+            var inventory = new Inventory
+            {
+                ProductId = null, // Parent is variant-backed
+                VariantId = variant.Id,
+                Quantity = dto.InitialStock,
+                ReservedQuantity = 0,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.Inventories.Add(inventory);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // 5. Map Entity & Inventory to Response DTO
             return new ProductVariantResponseDto
             {
                 Id = variant.Id,
@@ -61,7 +73,8 @@ namespace API_Ecommerce.Commands.Create
                 Sku = variant.Sku,
                 Price = variant.Price,
                 DiscountPrice = variant.DiscountPrice,
-                StockQuantity = variant.StockQuantity,
+                StockQuantity = inventory.Quantity,
+                AvailableQuantity = inventory.AvailableQuantity,
                 ImageUrl = variant.ImageUrl,
                 Size = variant.Size,
                 Color = variant.Color,
