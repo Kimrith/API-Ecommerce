@@ -32,11 +32,9 @@ namespace API_Ecommerce.Commands.Update
 
             var dto = request.Dto;
 
-            // 2. Update entity properties (StockQuantity removed from ProductVariants)
+            // 2. Update entity properties
             variant.Title = dto.Title;
             variant.Sku = dto.Sku;
-            variant.Price = dto.Price;
-            variant.DiscountPrice = dto.DiscountPrice;
             variant.ImageUrl = dto.ImageUrl;
             variant.Size = dto.Size;
             variant.Color = dto.Color;
@@ -46,16 +44,13 @@ namespace API_Ecommerce.Commands.Update
             // 3. Save changes
             await _context.SaveChangesAsync(cancellationToken);
 
-            // 4. Return mapped Response DTO pulling from Inventory
+            // 4. Return mapped Response DTO (StockQuantity removed)
             return new ProductVariantResponseDto
             {
                 Id = variant.Id,
                 ProductId = variant.ProductId,
                 Title = variant.Title,
                 Sku = variant.Sku,
-                Price = variant.Price,
-                DiscountPrice = variant.DiscountPrice,
-                StockQuantity = variant.Inventory?.Quantity ?? 0,
                 AvailableQuantity = variant.Inventory?.AvailableQuantity ?? 0,
                 ImageUrl = variant.ImageUrl,
                 Size = variant.Size,

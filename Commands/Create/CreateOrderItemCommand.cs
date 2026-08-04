@@ -57,7 +57,7 @@ namespace API_Ecommerce.Commands.Create
                 throw new KeyNotFoundException($"Product with ID {request.ProductId} was not found.");
             }
 
-            // 3. Determine Price and Variant Details (Fixed EffectivePrice)
+            // 3. Determine Price from Main Product
             decimal unitPrice = (product.DiscountPrice.HasValue && product.DiscountPrice.Value > 0)
                 ? product.DiscountPrice.Value
                 : product.Price;
@@ -77,16 +77,7 @@ namespace API_Ecommerce.Commands.Create
 
                 variantName = variant.Title;
                 sku = variant.Sku;
-
-                // Override unit price with variant pricing if available
-                if (variant.DiscountPrice.HasValue && variant.DiscountPrice.Value > 0)
-                {
-                    unitPrice = variant.DiscountPrice.Value;
-                }
-                else if (variant.Price > 0)
-                {
-                    unitPrice = variant.Price;
-                }
+                // Variant price block removed since pricing lives on the main Product
             }
 
             // 4. Create OrderItem Snapshot
@@ -133,7 +124,7 @@ namespace API_Ecommerce.Commands.Create
                 Items = order.OrderItems.Select(i => new OrderItemDtos.Response
                 {
                     Id = i.Id,
-                    ProductId = i.ProductId, // Fixed: i.ProductId is long, no null-coalescing needed
+                    ProductId = i.ProductId,
                     ProductName = i.ProductName,
                     VariantId = i.VariantId,
                     VariantName = i.VariantName,

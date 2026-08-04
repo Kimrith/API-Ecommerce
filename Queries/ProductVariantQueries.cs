@@ -39,10 +39,9 @@ namespace API_Ecommerce.Queries
             var dynamicParameters = new DynamicParameters();
             dynamicParameters.Add("ProductId", productId);
 
-            // Hide out-of-stock or inactive variants for public users
+            // Only check IsActive if includeSuspended is false, but ignore stock quantity completely
             if (!includeSuspended)
             {
-                whereClauses.Add("COALESCE(i.Quantity, 0) > 0");
                 whereClauses.Add("pv.IsActive = 1");
             }
 
@@ -54,9 +53,6 @@ namespace API_Ecommerce.Queries
                     pv.ProductId,
                     pv.Title,
                     pv.Sku,
-                    pv.Price,
-                    pv.DiscountPrice,
-                    COALESCE(i.Quantity, 0) AS StockQuantity,
                     COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
                     pv.ImageUrl,
                     pv.Size,
@@ -84,9 +80,6 @@ namespace API_Ecommerce.Queries
                     pv.ProductId,
                     pv.Title,
                     pv.Sku,
-                    pv.Price,
-                    pv.DiscountPrice,
-                    COALESCE(i.Quantity, 0) AS StockQuantity,
                     COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
                     pv.ImageUrl,
                     pv.Size,
@@ -113,9 +106,6 @@ namespace API_Ecommerce.Queries
                     pv.ProductId,
                     pv.Title,
                     pv.Sku,
-                    pv.Price,
-                    pv.DiscountPrice,
-                    COALESCE(i.Quantity, 0) AS StockQuantity,
                     COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
                     pv.ImageUrl,
                     pv.Size,

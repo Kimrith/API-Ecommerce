@@ -22,14 +22,6 @@ namespace API_Ecommerce.Models
         [StringLength(100)]
         public string? Sku { get; set; }
 
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal Price { get; set; }
-
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal? DiscountPrice { get; set; } = 0;
-
-        // REMOVED: StockQuantity managed via Inventory table.
-
         [StringLength(500)]
         public string? ImageUrl { get; set; }
 

@@ -29,17 +29,15 @@ namespace API_Ecommerce.Commands.Create
 
             if (!parentProductExists)
             {
-                return null; // Or throw a NotFoundException depending on your error handling setup
+                return null;
             }
 
-            // 2. Map DTO to Entity (StockQuantity removed from ProductVariants)
+            // 2. Map DTO to Entity (Price & DiscountPrice removed from ProductVariants)
             var variant = new ProductVariants
             {
                 ProductId = dto.ProductId,
                 Title = dto.Title,
                 Sku = dto.Sku,
-                Price = dto.Price,
-                DiscountPrice = dto.DiscountPrice,
                 ImageUrl = dto.ImageUrl,
                 Size = dto.Size,
                 Color = dto.Color,
@@ -51,12 +49,12 @@ namespace API_Ecommerce.Commands.Create
             await _context.ProductVariants.AddAsync(variant, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
-            // 4. Create the Inventory record using InitialStock
+            // 4. Create the Inventory record (Defaulting quantity to 0 since InitialStock was removed from variant DTO)
             var inventory = new Inventory
             {
-                ProductId = null, // Parent is variant-backed
+                ProductId = null,
                 VariantId = variant.Id,
-                Quantity = dto.InitialStock,
+                Quantity = 0,
                 ReservedQuantity = 0,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -71,9 +69,6 @@ namespace API_Ecommerce.Commands.Create
                 ProductId = variant.ProductId,
                 Title = variant.Title,
                 Sku = variant.Sku,
-                Price = variant.Price,
-                DiscountPrice = variant.DiscountPrice,
-                StockQuantity = inventory.Quantity,
                 AvailableQuantity = inventory.AvailableQuantity,
                 ImageUrl = variant.ImageUrl,
                 Size = variant.Size,

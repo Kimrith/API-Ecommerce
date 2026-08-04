@@ -1,4 +1,8 @@
-﻿using API_Ecommerce.Models;
+﻿using System.Security.Claims;
+using System.Text;
+using System.Text.Json.Serialization;
+using API_Ecommerce.Models;
+using API_Ecommerce.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace API_Ecommerce.Data
@@ -110,18 +114,11 @@ namespace API_Ecommerce.Data
                 entity.Property(p => p.DiscountEndDate).IsRequired(false);
                 entity.Property(p => p.PublishAt).IsRequired(false);
 
-
                 // Seller relationship
                 entity.HasOne(p => p.Seller)
                       .WithMany()
                       .HasForeignKey(p => p.SellerId)
                       .OnDelete(DeleteBehavior.Restrict);
-            });
-
-            modelBuilder.Entity<ProductVariants>(entity =>
-            {
-                entity.Property(pv => pv.Price)
-                      .HasColumnType("decimal(18,2)");
             });
 
             // ==========================================
