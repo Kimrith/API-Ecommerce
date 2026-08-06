@@ -22,6 +22,7 @@ namespace API_Ecommerce.Models
         [StringLength(100)]
         public string? Sku { get; set; }
 
+        // CORRECT: Database stores the image path/URL string, not an IFormFile
         [StringLength(500)]
         public string? ImageUrl { get; set; }
 
@@ -31,10 +32,19 @@ namespace API_Ecommerce.Models
         [StringLength(100)]
         public string? Color { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        [Required]
+        public decimal Price { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? DiscountPrice { get; set; }
+
+        [Required]
+        public int InitialStock { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         // --- Navigation Properties ---
-        // Added: Link to inventory specifically for this variant
         public virtual Inventory? Inventory { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

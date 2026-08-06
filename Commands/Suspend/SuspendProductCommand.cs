@@ -9,6 +9,7 @@ namespace API_Ecommerce.Commands
     // --- 1. Command Record ---
     public record SuspendProductCommand(
         int Id,
+        ProductStatus Status, // Added dynamic Status field
         int UserId,
         string UserRole
     ) : IRequest<ProductResponseDto>;
@@ -37,21 +38,21 @@ namespace API_Ecommerce.Commands
                 throw new KeyNotFoundException($"Product with ID {request.Id} was not found.");
             }
 
-            // 2. Authorization check: Admins can suspend any product; Sellers can only suspend their own
+            // 2. Authorization check: Admins can update status of any product; Sellers can only update status of their own
             bool isAdmin = request.UserRole.Equals(Roles.Admin.ToString(), StringComparison.OrdinalIgnoreCase);
             if (product.SellerId != request.UserId && !isAdmin)
             {
-                throw new UnauthorizedAccessException("You do not have permission to suspend this product.");
+                throw new UnauthorizedAccessException("You do not have permission to update status of this product.");
             }
 
             // 3. Optional: Prevent duplicate state update
-            if (product.Status == ProductStatus.Suspended)
+            if (product.Status == request.Status)
             {
-                throw new InvalidOperationException("Product is already suspended.");
+                throw new InvalidOperationException($"Product status is already {request.Status}.");
             }
 
             // 4. Update status and timestamp
-            product.Status = ProductStatus.Suspended;
+            product.Status = request.Status;
             product.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(cancellationToken);

@@ -4,6 +4,7 @@ using API_Ecommerce.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace API_Ecommerce.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260805025650_AddProductVariantPriceStock")]
+    partial class AddProductVariantPriceStock
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -347,32 +350,6 @@ namespace API_Ecommerce.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Categories");
-                });
-
-            modelBuilder.Entity("API_Ecommerce.Models.CategoriesStatistics", b =>
-                {
-                    b.Property<int>("Approved")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Archived")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Draft")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Pending")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Rejected")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Suspended")
-                        .HasColumnType("int");
-
-                    b.Property<int>("totalCategories")
-                        .HasColumnType("int");
-
-                    b.ToTable("CategoriesStatistics");
                 });
 
             modelBuilder.Entity("API_Ecommerce.Models.Coupon", b =>
@@ -832,32 +809,6 @@ namespace API_Ecommerce.Migrations
                     b.HasIndex("SellerId");
 
                     b.ToTable("products");
-                });
-
-            modelBuilder.Entity("API_Ecommerce.Models.ProductStatistics", b =>
-                {
-                    b.Property<int>("Approved")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Archived")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Draft")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Pending")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Rejected")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Suspended")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TotalProducts")
-                        .HasColumnType("int");
-
-                    b.ToTable("ProductStatistics");
                 });
 
             modelBuilder.Entity("API_Ecommerce.Models.ProductVariants", b =>

@@ -143,12 +143,10 @@ builder.Services.AddOpenApi("v1", options =>
 // ==========================================
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
+    options.AddPolicy("AllowAngular",
+        policy => policy.WithOrigins("http://localhost:4200", "http://127.0.0.1:4200")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod());
 });
 
 // ==========================================
@@ -172,10 +170,9 @@ app.UseHttpsRedirection();
 // ==========================================
 // 9. Middleware Pipeline Order
 // ==========================================
-app.UseStaticFiles(); // Serves uploaded product, category & user images from wwwroot
-
+app.UseStaticFiles(); // Serves uploaded product, category & user images from wwwr
 // 👈 CORS MUST be placed before Authentication and Authorization
-app.UseCors("AllowAll");
+app.UseCors("AllowAngular");
 
 app.UseAuthentication();
 app.UseAuthorization();

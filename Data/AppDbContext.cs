@@ -45,6 +45,10 @@ namespace API_Ecommerce.Data
 
         public DbSet<SellerBakongConfigs> SellerBakongConfigs { get; set; }
 
+        public DbSet<ProductStatistics> ProductStatistics { get; set; }
+
+        public DbSet<CategoriesStatistics> CategoriesStatistics { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -119,6 +123,20 @@ namespace API_Ecommerce.Data
                       .WithMany()
                       .HasForeignKey(p => p.SellerId)
                       .OnDelete(DeleteBehavior.Restrict);
+
+                // Product -> Variants (Cascade Delete)
+                entity.HasMany(p => p.Variants)
+                      .WithOne(v => v.Product)
+                      .HasForeignKey(v => v.ProductId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ProductVariants>(entity =>
+            {
+                entity.HasOne(v => v.Inventory)
+                      .WithOne(i => i.Variant)
+                      .HasForeignKey<Inventory>(i => i.VariantId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // ==========================================
@@ -174,7 +192,7 @@ namespace API_Ecommerce.Data
             });
 
             // ==========================================
-            // 6. FAVORITES & REVIEWS (Fixes Cascade Cycle Errors)
+            // 6. FAVORITES & REVIEWS (Cascade on Product Delete)
             // ==========================================
             modelBuilder.Entity<Favorite>(entity =>
             {
@@ -186,11 +204,11 @@ namespace API_Ecommerce.Data
                       .HasForeignKey(f => f.UserId)
                       .OnDelete(DeleteBehavior.NoAction);
 
-                // Prevent SQL Server Cascade Cycle on Product
+                // Enable Cascade Delete when a product is removed
                 entity.HasOne(f => f.Product)
                       .WithMany()
                       .HasForeignKey(f => f.ProductId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<Review>(entity =>
@@ -200,11 +218,24 @@ namespace API_Ecommerce.Data
                       .HasForeignKey(r => r.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                // Prevent SQL Server Cascade Cycle on Product
+                // Enable Cascade Delete when a product is removed
                 entity.HasOne(r => r.Product)
                       .WithMany()
                       .HasForeignKey(r => r.ProductId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ==========================================
+            // 7. PRODUCT STATISTICS (Keyless Configuration)
+            // ==========================================
+            modelBuilder.Entity<ProductStatistics>(entity =>
+            {
+                entity.HasNoKey();
+            });
+
+            modelBuilder.Entity<CategoriesStatistics>(entity =>
+            {
+                entity.HasNoKey();
             });
         }
     }

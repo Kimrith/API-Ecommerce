@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace API_Ecommerce.DTOs
 {
@@ -14,13 +15,20 @@ namespace API_Ecommerce.DTOs
         [StringLength(100, ErrorMessage = "SKU cannot exceed 100 characters.")]
         public string? Sku { get; set; }
 
-        public string? ImageUrl { get; set; }
+        // CORRECT: IFormFile is correct here for receiving uploaded files
+        public IFormFile? ImageUrl { get; set; }
 
         [StringLength(100)]
         public string? Size { get; set; }
 
         [StringLength(100)]
         public string? Color { get; set; }
+
+        public decimal Price { get; set; }
+
+        public decimal? DiscountPrice { get; set; }
+
+        public int InitialStock { get; set; }
 
         public bool IsActive { get; set; } = true;
     }
@@ -34,13 +42,20 @@ namespace API_Ecommerce.DTOs
         [StringLength(100, ErrorMessage = "SKU cannot exceed 100 characters.")]
         public string? Sku { get; set; }
 
-        public string? ImageUrl { get; set; }
+        // CORRECT: IFormFile is correct here for receiving uploaded files on update
+        public IFormFile? ImageUrl { get; set; }
 
         [StringLength(100)]
         public string? Size { get; set; }
 
         [StringLength(100)]
         public string? Color { get; set; }
+
+        public decimal Price { get; set; }
+
+        public decimal? DiscountPrice { get; set; }
+
+        public int InitialStock { get; set; }
 
         public bool IsActive { get; set; }
     }
@@ -52,10 +67,16 @@ namespace API_Ecommerce.DTOs
         public string Title { get; set; } = string.Empty;
         public string? Sku { get; set; }
         public int AvailableQuantity { get; set; }
+
+        // CORRECT: Returns the image URL string back to the API consumer
         public string? ImageUrl { get; set; }
+
         public string? Size { get; set; }
         public string? Color { get; set; }
         public bool IsActive { get; set; }
+        public decimal Price { get; set; }
+        public decimal? DiscountPrice { get; set; }
+        public int InitialStock { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

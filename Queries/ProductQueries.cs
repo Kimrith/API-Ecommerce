@@ -70,7 +70,7 @@ namespace API_Ecommerce.Queries
             // 4. Status Filter (Supports integer or string enum storage)
             if (status.HasValue)
             {
-                whereClauses.Add("(p.Status = @StatusValue OR LOWER(CAST(p.Status AS NVARCHAR(50))) = LOWER(@StatusName))");
+                whereClauses.Add("(p.Status = CAST(@StatusValue AS NVARCHAR(50)) OR LOWER(p.Status) = LOWER(@StatusName))");
                 dynamicParameters.Add("StatusValue", (int)status.Value);
                 dynamicParameters.Add("StatusName", status.Value.ToString());
             }
@@ -250,6 +250,32 @@ namespace API_Ecommerce.Queries
 
             using var connection = await GetOpenConnectionAsync();
             return await connection.QueryAsync<ProductResponseDto>(sql, new { SellerId = sellerId });
+        }
+
+        /// <summary>
+        /// Retrieves aggregate product statistics broken down by status.
+        /// Optional sellerId allows filtering statistics for a specific seller.
+        /// </summary>
+        public async Task<ProductStatisticsDto> GetProductStatisticsAsync(int? sellerId = null)
+        {
+            var whereClause = sellerId.HasValue ? "WHERE p.SellerId = @SellerId" : string.Empty;
+
+            var sql = $@"
+                SELECT 
+                    COUNT(1) AS TotalProducts,
+                    SUM(CASE WHEN p.Status = 'Draft' THEN 1 ELSE 0 END) AS Draft,
+                    SUM(CASE WHEN p.Status = 'Pending' THEN 1 ELSE 0 END) AS Pending,
+                    SUM(CASE WHEN p.Status = 'Approved' THEN 1 ELSE 0 END) AS Approved,
+                    SUM(CASE WHEN p.Status = 'Rejected' THEN 1 ELSE 0 END) AS Rejected,
+                    SUM(CASE WHEN p.Status = 'Archived' THEN 1 ELSE 0 END) AS Archived,
+                    SUM(CASE WHEN p.Status = 'Suspended' THEN 1 ELSE 0 END) AS Suspended
+                FROM products p
+                {whereClause};";
+
+            using var connection = await GetOpenConnectionAsync();
+            var result = await connection.QueryFirstOrDefaultAsync<ProductStatisticsDto>(sql, new { SellerId = sellerId });
+
+            return result ?? new ProductStatisticsDto();
         }
     }
 }

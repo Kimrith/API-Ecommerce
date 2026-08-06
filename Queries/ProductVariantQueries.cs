@@ -57,6 +57,9 @@ namespace API_Ecommerce.Queries
                     pv.ImageUrl,
                     pv.Size,
                     pv.Color,
+                    pv.Price,
+                    pv.DiscountPrice,
+                    pv.InitialStock,
                     pv.IsActive,
                     pv.CreatedAt,
                     pv.UpdatedAt
@@ -84,6 +87,9 @@ namespace API_Ecommerce.Queries
                     pv.ImageUrl,
                     pv.Size,
                     pv.Color,
+                    pv.Price,
+                    pv.DiscountPrice,
+                    pv.InitialStock,
                     pv.IsActive,
                     pv.CreatedAt,
                     pv.UpdatedAt
@@ -110,6 +116,9 @@ namespace API_Ecommerce.Queries
                     pv.ImageUrl,
                     pv.Size,
                     pv.Color,
+                    pv.Price,
+                    pv.DiscountPrice,
+                    pv.InitialStock,
                     pv.IsActive,
                     pv.CreatedAt,
                     pv.UpdatedAt

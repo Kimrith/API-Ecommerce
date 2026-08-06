@@ -100,9 +100,12 @@ namespace API_Ecommerce.Controllers
         /// Creates a new product variant.
         /// Requires Admin or Seller privileges.
         /// </summary>
+        
         [HttpPost]
         [Authorize(Roles = "Admin,Seller")]
-        public async Task<ActionResult<ProductVariantResponseDto>> Create([FromBody] CreateProductVariantDto dto)
+        [Consumes("multipart/form-data")] 
+        public async Task<ActionResult<ProductVariantResponseDto>> Create(
+        [FromForm] CreateProductVariantDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -110,14 +113,22 @@ namespace API_Ecommerce.Controllers
             }
 
             var command = new CreateProductVariantCommand(dto);
+
             var result = await _mediator.Send(command);
 
             if (result == null)
             {
-                return BadRequest(new { message = "Failed to create variant. Parent product may not exist or SKU is already in use." });
+                return BadRequest(new
+                {
+                    message = "Failed to create variant. Parent product may not exist or SKU is already in use."
+                });
             }
 
-            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = result.Id },
+                result
+            );
         }
 
         /// <summary>
@@ -126,7 +137,8 @@ namespace API_Ecommerce.Controllers
         /// </summary>
         [HttpPut("{id:int}")]
         [Authorize(Roles = "Admin,Seller")]
-        public async Task<ActionResult<ProductVariantResponseDto>> Update(int id, [FromBody] UpdateProductVariantDto dto)
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<ProductVariantResponseDto>> Update(int id, [FromForm] UpdateProductVariantDto dto)
         {
             if (!ModelState.IsValid)
             {

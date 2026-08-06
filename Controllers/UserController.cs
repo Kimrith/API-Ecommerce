@@ -148,5 +148,68 @@ namespace API_Ecommerce.Controllers
                 return StatusCode(500, new { message = "An error occurred while reactivating the account.", details = ex.Message });
             }
         }
+
+        // --- 7. UPDATE USER PROFILE (PUT /api/User/1) ---
+        [HttpPut("{id:long}")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UpdateUser(long id, [FromForm] UpdateUserDto dto)
+        {
+            try
+            {
+                string? profileImageUrl = null;
+
+                if (dto.ProfileImage != null && dto.ProfileImage.Length > 0)
+                {
+                    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+                    var extension = Path.GetExtension(dto.ProfileImage.FileName).ToLowerInvariant();
+
+                    if (!allowedExtensions.Contains(extension))
+                    {
+                        return BadRequest(new { message = "Only image files (.jpg, .png, .webp, .gif) are allowed." });
+                    }
+
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+
+                    var fileName = $"{Guid.NewGuid()}{extension}";
+                    var filePath = Path.Combine(uploadsFolder, fileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await dto.ProfileImage.CopyToAsync(stream);
+                    }
+
+                    profileImageUrl = $"/uploads/{fileName}";
+                }
+
+                var updatedUser = await _updateAuthCommand.ExecuteAsync(id, dto, profileImageUrl);
+                return Ok(new
+                {
+                    message = "Profile updated successfully.",
+                    userId = updatedUser.Id,
+                    fullName = updatedUser.FullName,
+                    email = updatedUser.Email,
+                    phoneNumber = updatedUser.PhoneNumber,
+                    shopName = updatedUser.ShopName,
+                    status = updatedUser.Status.ToString(),
+                    profileImageUrl = updatedUser.ProfileImageUrl
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while updating the profile.", details = ex.Message });
+            }
+        }
     }
 }
