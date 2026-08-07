@@ -127,7 +127,7 @@ namespace API_Ecommerce.Queries
                 FROM products p
                 {whereSql};";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             using var multi = await connection.QueryMultipleAsync(sql, dynamicParameters);
 
             var items = (await multi.ReadAsync<ProductResponseDto>()).ToList();
@@ -175,7 +175,7 @@ namespace API_Ecommerce.Queries
                 LEFT JOIN inventory i ON p.Id = i.ProductId AND i.VariantId IS NULL
                 WHERE p.Id = @Id;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryFirstOrDefaultAsync<ProductResponseDto>(sql, new { Id = id });
         }
 
@@ -211,7 +211,7 @@ namespace API_Ecommerce.Queries
                 LEFT JOIN inventory i ON p.Id = i.ProductId AND i.VariantId IS NULL
                 WHERE LOWER(p.Slug) = LOWER(@Slug);";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryFirstOrDefaultAsync<ProductResponseDto>(sql, new { Slug = slug });
         }
 
@@ -248,7 +248,7 @@ namespace API_Ecommerce.Queries
                 WHERE p.SellerId = @SellerId
                 ORDER BY p.CreatedAt DESC;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryAsync<ProductResponseDto>(sql, new { SellerId = sellerId });
         }
 
@@ -272,7 +272,7 @@ namespace API_Ecommerce.Queries
                 FROM products p
                 {whereClause};";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             var result = await connection.QueryFirstOrDefaultAsync<ProductStatisticsDto>(sql, new { SellerId = sellerId });
 
             return result ?? new ProductStatisticsDto();

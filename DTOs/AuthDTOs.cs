@@ -85,6 +85,7 @@ namespace API_Ecommerce.DTOs
         public long UserId { get; set; } // Updated from int to long
         public string FullName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public string? PhoneNumber { get; set; } // <--- ADD THIS LINE HERE
         public string Role { get; set; } = string.Empty;
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

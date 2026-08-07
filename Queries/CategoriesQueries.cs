@@ -69,7 +69,7 @@ namespace API_Ecommerce.Queries
                     c.ImageUrl, c.UserId, u.FullName, c.CreatedAt, c.UpdatedAt
                 ORDER BY c.CreatedAt DESC;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryAsync<CategoryResponseDto>(sql, parameters);
         }
 
@@ -99,7 +99,7 @@ namespace API_Ecommerce.Queries
                     c.Id, c.Name, c.Slug, c.Status, c.Description, 
                     c.ImageUrl, c.UserId, u.FullName, c.CreatedAt, c.UpdatedAt;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryFirstOrDefaultAsync<CategoryResponseDto>(sql, new { Id = id });
         }
 
@@ -130,7 +130,7 @@ namespace API_Ecommerce.Queries
                     c.ImageUrl, c.UserId, u.FullName, c.CreatedAt, c.UpdatedAt
                 ORDER BY c.CreatedAt DESC;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryAsync<CategoryResponseDto>(sql, new { UserId = userId });
         }
 
@@ -150,7 +150,7 @@ namespace API_Ecommerce.Queries
                     SUM(CASE WHEN TRY_CAST(c.Status AS INT) = 5 OR LOWER(CAST(c.Status AS NVARCHAR(50))) = 'suspended' THEN 1 ELSE 0 END) AS Suspended
                 FROM Categories c;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryFirstOrDefaultAsync<CategoriesStatistics>(sql) ?? new CategoriesStatistics();
         }
     }

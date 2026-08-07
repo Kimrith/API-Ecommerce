@@ -1,4 +1,4 @@
-﻿using API_Ecommerce.Data;
+using API_Ecommerce.Data;
 using API_Ecommerce.DTOs;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
@@ -46,7 +46,7 @@ namespace API_Ecommerce.Queries
                 WHERE f.UserId = @UserId
                 ORDER BY f.CreatedAt DESC;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryAsync<FavoriteResponseDto>(sql, new { UserId = userId });
         }
     }

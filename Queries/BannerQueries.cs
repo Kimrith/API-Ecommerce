@@ -1,4 +1,4 @@
-﻿using API_Ecommerce.Data;
+using API_Ecommerce.Data;
 using API_Ecommerce.DTOs;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
@@ -67,7 +67,7 @@ namespace API_Ecommerce.Queries
                 {whereSql}
                 ORDER BY DisplayOrder ASC, CreatedAt DESC;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryAsync<BannerResponseDto>(sql, dynamicParameters);
         }
 
@@ -92,7 +92,7 @@ namespace API_Ecommerce.Queries
                 FROM banners
                 WHERE Id = @Id;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryFirstOrDefaultAsync<BannerResponseDto>(sql, new { Id = id });
         }
     }

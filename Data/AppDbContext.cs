@@ -45,10 +45,6 @@ namespace API_Ecommerce.Data
 
         public DbSet<SellerBakongConfigs> SellerBakongConfigs { get; set; }
 
-        public DbSet<ProductStatistics> ProductStatistics { get; set; }
-
-        public DbSet<CategoriesStatistics> CategoriesStatistics { get; set; }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -89,6 +85,10 @@ namespace API_Ecommerce.Data
                 entity.Property(c => c.Status)
                       .HasConversion<string>();
 
+                // Performance Indexes
+                entity.HasIndex(c => c.UserId).HasName("IX_Categories_UserId");
+                entity.HasIndex(c => c.Status).HasName("IX_Categories_Status");
+
                 // CreatedBy User
                 entity.HasOne(c => c.User)
                       .WithMany()
@@ -117,6 +117,9 @@ namespace API_Ecommerce.Data
                 entity.Property(p => p.DiscountStartDate).IsRequired(false);
                 entity.Property(p => p.DiscountEndDate).IsRequired(false);
                 entity.Property(p => p.PublishAt).IsRequired(false);
+
+                // Performance Index for joins and counts
+                entity.HasIndex(p => p.CategoryId).HasName("IX_Products_CategoryId");
 
                 // Seller relationship
                 entity.HasOne(p => p.Seller)
@@ -223,19 +226,6 @@ namespace API_Ecommerce.Data
                       .WithMany()
                       .HasForeignKey(r => r.ProductId)
                       .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            // ==========================================
-            // 7. PRODUCT STATISTICS (Keyless Configuration)
-            // ==========================================
-            modelBuilder.Entity<ProductStatistics>(entity =>
-            {
-                entity.HasNoKey();
-            });
-
-            modelBuilder.Entity<CategoriesStatistics>(entity =>
-            {
-                entity.HasNoKey();
             });
         }
     }

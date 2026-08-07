@@ -68,7 +68,7 @@ namespace API_Ecommerce.Queries
                 {whereSql}
                 ORDER BY pv.CreatedAt ASC;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryAsync<ProductVariantResponseDto>(sql, dynamicParameters);
         }
 
@@ -97,7 +97,7 @@ namespace API_Ecommerce.Queries
                 LEFT JOIN inventory i ON pv.Id = i.VariantId
                 WHERE pv.Id = @Id;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryFirstOrDefaultAsync<ProductVariantResponseDto>(sql, new { Id = id });
         }
 
@@ -126,7 +126,7 @@ namespace API_Ecommerce.Queries
                 LEFT JOIN inventory i ON pv.Id = i.VariantId
                 WHERE LOWER(pv.Sku) = LOWER(@Sku);";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryFirstOrDefaultAsync<ProductVariantResponseDto>(sql, new { Sku = sku });
         }
 
@@ -143,7 +143,7 @@ namespace API_Ecommerce.Queries
                       AND (@ExcludeVariantId IS NULL OR Id <> @ExcludeVariantId)
                 ) THEN 1 ELSE 0 END;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.ExecuteScalarAsync<bool>(sql, new
             {
                 Sku = sku,
