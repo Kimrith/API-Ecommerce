@@ -73,7 +73,7 @@ namespace API_Ecommerce.Commands
                 initialStatus = ProductStatus.Approved;
             }
 
-            // 6. Map DTO to Entity
+            // 6. Map DTO to Entity (StockQuantity removed from Product)
             var product = new Product
             {
                 Name = dto.Name,
@@ -83,7 +83,6 @@ namespace API_Ecommerce.Commands
                 DiscountPrice = dto.DiscountPrice,
                 DiscountStartDate = dto.DiscountStartDate,
                 DiscountEndDate = dto.DiscountEndDate,
-                StockQuantity = dto.StockQuantity,
                 CategoryId = dto.CategoryId,
                 SellerId = request.SellerId,
                 ImageUrl = imageUrl,
@@ -92,11 +91,24 @@ namespace API_Ecommerce.Commands
                 CreatedAt = DateTime.UtcNow
             };
 
-            // 7. Save to Database
+            // 7. Save Product to Database to get its Id
             _context.Products.Add(product);
             await _context.SaveChangesAsync(cancellationToken);
 
-            // 8. Return Response DTO
+            // 8. Create the Inventory record using InitialStock
+            var inventory = new Inventory
+            {
+                ProductId = product.Id,
+                VariantId = null, // No variants for base product creation
+                Quantity = dto.InitialStock,
+                ReservedQuantity = 0,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.Inventories.Add(inventory);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            // 9. Return Response DTO pulling from Inventory
             return new ProductResponseDto
             {
                 Id = product.Id,
@@ -107,7 +119,8 @@ namespace API_Ecommerce.Commands
                 DiscountPrice = product.DiscountPrice,
                 DiscountStartDate = product.DiscountStartDate,
                 DiscountEndDate = product.DiscountEndDate,
-                StockQuantity = product.StockQuantity,
+                StockQuantity = inventory.Quantity,
+                AvailableQuantity = inventory.AvailableQuantity,
                 ImageUrl = product.ImageUrl,
                 Status = product.Status,
                 PublishAt = product.PublishAt,

@@ -4,10 +4,11 @@ using API_Ecommerce.Enums;
 
 namespace API_Ecommerce.Models
 {
+    [Table("products")]
     public class Product
     {
         [Key]
-        public long Id { get; set; } // Updated from int to long
+        public long Id { get; set; }
 
         [Required]
         [StringLength(150)]
@@ -22,38 +23,38 @@ namespace API_Ecommerce.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal Price { get; set; }
 
-        // --- Discount Fields ---
         [Column(TypeName = "decimal(18,2)")]
         public decimal? DiscountPrice { get; set; } = 0;
 
         public DateTime? DiscountStartDate { get; set; }
         public DateTime? DiscountEndDate { get; set; }
 
-        public int StockQuantity { get; set; }
+        // REMOVED: StockQuantity is now managed strictly via the Inventory model.
 
+        [StringLength(500)]
         public string ImageUrl { get; set; } = string.Empty;
 
         public ProductStatus Status { get; set; } = ProductStatus.Pending;
 
-        // --- Scheduled Posting ---
         public DateTime? PublishAt { get; set; } = DateTime.UtcNow;
 
-        // --- Category Relationship ---
         [Required]
-        public long CategoryId { get; set; } // Updated from int to long (matches Categories.Id)
+        public long CategoryId { get; set; }
 
         [ForeignKey(nameof(CategoryId))]
         public virtual Categories? Category { get; set; }
 
-        // --- Seller / Creator Relationship ---
         [Required]
-        public long SellerId { get; set; } // Updated from int to long (matches Auth.Id)
+        public long SellerId { get; set; }
 
         [ForeignKey(nameof(SellerId))]
         public virtual Auth? Seller { get; set; }
 
-        // --- Navigation to Variants ---
+        // --- Navigation Properties ---
         public virtual ICollection<ProductVariants> Variants { get; set; } = new List<ProductVariants>();
+
+        // Added: Direct link to inventory if the product has no variants
+        public virtual Inventory? Inventory { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }

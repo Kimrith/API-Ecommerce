@@ -1,6 +1,7 @@
 using API_Ecommerce.Data;
 using API_Ecommerce.DTOs;
 using API_Ecommerce.Enums;
+using API_Ecommerce.Models;
 using Dapper;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
@@ -68,7 +69,7 @@ namespace API_Ecommerce.Queries
                     c.ImageUrl, c.UserId, u.FullName, c.CreatedAt, c.UpdatedAt
                 ORDER BY c.CreatedAt DESC;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryAsync<CategoryResponseDto>(sql, parameters);
         }
 
@@ -98,7 +99,7 @@ namespace API_Ecommerce.Queries
                     c.Id, c.Name, c.Slug, c.Status, c.Description, 
                     c.ImageUrl, c.UserId, u.FullName, c.CreatedAt, c.UpdatedAt;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryFirstOrDefaultAsync<CategoryResponseDto>(sql, new { Id = id });
         }
 
@@ -129,8 +130,28 @@ namespace API_Ecommerce.Queries
                     c.ImageUrl, c.UserId, u.FullName, c.CreatedAt, c.UpdatedAt
                 ORDER BY c.CreatedAt DESC;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryAsync<CategoryResponseDto>(sql, new { UserId = userId });
+        }
+
+        /// <summary>
+        /// Retrieves statistics on product statuses across categories.
+        /// </summary>
+        public async Task<CategoriesStatistics> GetCategoriesStatisticsAsync()
+        {
+            const string sql = @"
+                SELECT 
+                    COUNT(c.Id) AS totalCategories,
+                    SUM(CASE WHEN TRY_CAST(c.Status AS INT) = 0 OR LOWER(CAST(c.Status AS NVARCHAR(50))) = 'draft' THEN 1 ELSE 0 END) AS Draft,
+                    SUM(CASE WHEN TRY_CAST(c.Status AS INT) = 1 OR LOWER(CAST(c.Status AS NVARCHAR(50))) = 'pending' THEN 1 ELSE 0 END) AS Pending,
+                    SUM(CASE WHEN TRY_CAST(c.Status AS INT) = 2 OR LOWER(CAST(c.Status AS NVARCHAR(50))) = 'approved' THEN 1 ELSE 0 END) AS Approved,
+                    SUM(CASE WHEN TRY_CAST(c.Status AS INT) = 3 OR LOWER(CAST(c.Status AS NVARCHAR(50))) = 'rejected' THEN 1 ELSE 0 END) AS Rejected,
+                    SUM(CASE WHEN TRY_CAST(c.Status AS INT) = 4 OR LOWER(CAST(c.Status AS NVARCHAR(50))) = 'archived' THEN 1 ELSE 0 END) AS Archived,
+                    SUM(CASE WHEN TRY_CAST(c.Status AS INT) = 5 OR LOWER(CAST(c.Status AS NVARCHAR(50))) = 'suspended' THEN 1 ELSE 0 END) AS Suspended
+                FROM Categories c;";
+
+            var connection = await GetOpenConnectionAsync();
+            return await connection.QueryFirstOrDefaultAsync<CategoriesStatistics>(sql) ?? new CategoriesStatistics();
         }
     }
 }

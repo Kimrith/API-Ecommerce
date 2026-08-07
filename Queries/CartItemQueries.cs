@@ -1,4 +1,4 @@
-﻿using API_Ecommerce.Data;
+using API_Ecommerce.Data;
 using API_Ecommerce.DTOs;
 using Dapper;
 using MediatR;
@@ -30,7 +30,7 @@ namespace API_Ecommerce.Queries
                 return new CartDtos.Response();
             }
 
-            using var connection = _context.Database.GetDbConnection();
+            var connection = _context.Database.GetDbConnection();
 
             const string sql = @"
                 DECLARE @TargetCartId BIGINT;

@@ -150,7 +150,37 @@ namespace API_Ecommerce.Controllers
 
             try
             {
-                var command = new SuspendProductCommand(id, userId, userRole);
+                var command = new SuspendProductCommand(id, ProductStatus.Suspended, userId, userRole);
+                var result = await _mediator.Send(command);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { Message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Update a product's status (Admin or Product Owner).
+        /// </summary>
+        [HttpPatch("{id:int}/status")]
+        [Authorize]
+        public async Task<ActionResult<ProductResponseDto>> UpdateStatus(int id, [FromBody] UpdateProductStatusDto dto)
+        {
+            int userId = GetCurrentUserId();
+            string userRole = GetCurrentUserRole();
+
+            try
+            {
+                var command = new SuspendProductCommand(id, dto.Status, userId, userRole);
                 var result = await _mediator.Send(command);
                 return Ok(result);
             }
@@ -192,6 +222,13 @@ namespace API_Ecommerce.Controllers
             {
                 return Forbid(ex.Message);
             }
+        }
+
+        [HttpGet("statistics")]
+        public async Task<ActionResult<ProductStatisticsDto>> GetStatistics([FromQuery] int? sellerId)
+        {
+            var stats = await _productQueries.GetProductStatisticsAsync(sellerId);
+            return Ok(stats);
         }
 
         // =========================================================================

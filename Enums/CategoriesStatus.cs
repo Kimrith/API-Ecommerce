@@ -6,6 +6,7 @@ namespace API_Ecommerce.Enums
         Pending = 1,     // Waiting for Admin approval
         Approved = 2,    // Live on Customer store
         Rejected = 3,    // Rejected by Admin
-        Archived = 4     // Hidden / Out of stock
+        Archived = 4,     // Hidden / Out of stock
+        Suspended = 5
     }
 }

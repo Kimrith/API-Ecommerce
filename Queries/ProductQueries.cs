@@ -70,7 +70,7 @@ namespace API_Ecommerce.Queries
             // 4. Status Filter (Supports integer or string enum storage)
             if (status.HasValue)
             {
-                whereClauses.Add("(p.Status = @StatusValue OR LOWER(CAST(p.Status AS NVARCHAR(50))) = LOWER(@StatusName))");
+                whereClauses.Add("(p.Status = CAST(@StatusValue AS NVARCHAR(50)) OR LOWER(p.Status) = LOWER(@StatusName))");
                 dynamicParameters.Add("StatusValue", (int)status.Value);
                 dynamicParameters.Add("StatusName", status.Value.ToString());
             }
@@ -92,7 +92,7 @@ namespace API_Ecommerce.Queries
             dynamicParameters.Add("Offset", offset);
             dynamicParameters.Add("PageSize", pageSize);
 
-            // Combined SQL Query for Page Items and Total Count
+            // Combined SQL Query for Page Items and Total Count (Joined with inventory table)
             var sql = $@"
                 SELECT 
                     p.Id,
@@ -103,7 +103,8 @@ namespace API_Ecommerce.Queries
                     p.DiscountPrice,
                     p.DiscountStartDate,
                     p.DiscountEndDate,
-                    p.StockQuantity,
+                    COALESCE(i.Quantity, 0) AS StockQuantity,
+                    COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
                     p.ImageUrl,
                     p.Status,
                     p.PublishAt,
@@ -113,19 +114,20 @@ namespace API_Ecommerce.Queries
                     COALESCE(u.FullName, 'Unknown') AS SellerName,
                     p.CreatedAt,
                     p.UpdatedAt
-                FROM Products p
-                LEFT JOIN Categories c ON p.CategoryId = c.Id
+                FROM products p
+                LEFT JOIN categories c ON p.CategoryId = c.Id
                 LEFT JOIN Auths u ON p.SellerId = u.Id
+                LEFT JOIN inventory i ON p.Id = i.ProductId AND i.VariantId IS NULL
                 {whereSql}
                 {orderBySql}
                 OFFSET @Offset ROWS
                 FETCH NEXT @PageSize ROWS ONLY;
 
                 SELECT COUNT(1)
-                FROM Products p
+                FROM products p
                 {whereSql};";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             using var multi = await connection.QueryMultipleAsync(sql, dynamicParameters);
 
             var items = (await multi.ReadAsync<ProductResponseDto>()).ToList();
@@ -142,7 +144,7 @@ namespace API_Ecommerce.Queries
         }
 
         /// <summary>
-        /// Retrieves a single product by ID with Category and Seller details.
+        /// Retrieves a single product by ID with Category, Seller, and Inventory details.
         /// </summary>
         public async Task<ProductResponseDto?> GetByIdAsync(int id)
         {
@@ -156,7 +158,8 @@ namespace API_Ecommerce.Queries
                     p.DiscountPrice,
                     p.DiscountStartDate,
                     p.DiscountEndDate,
-                    p.StockQuantity,
+                    COALESCE(i.Quantity, 0) AS StockQuantity,
+                    COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
                     p.ImageUrl,
                     p.Status,
                     p.PublishAt,
@@ -166,12 +169,13 @@ namespace API_Ecommerce.Queries
                     COALESCE(u.FullName, 'Unknown') AS SellerName,
                     p.CreatedAt,
                     p.UpdatedAt
-                FROM Products p
-                LEFT JOIN Categories c ON p.CategoryId = c.Id
+                FROM products p
+                LEFT JOIN categories c ON p.CategoryId = c.Id
                 LEFT JOIN Auths u ON p.SellerId = u.Id
+                LEFT JOIN inventory i ON p.Id = i.ProductId AND i.VariantId IS NULL
                 WHERE p.Id = @Id;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryFirstOrDefaultAsync<ProductResponseDto>(sql, new { Id = id });
         }
 
@@ -190,7 +194,8 @@ namespace API_Ecommerce.Queries
                     p.DiscountPrice,
                     p.DiscountStartDate,
                     p.DiscountEndDate,
-                    p.StockQuantity,
+                    COALESCE(i.Quantity, 0) AS StockQuantity,
+                    COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
                     p.ImageUrl,
                     p.Status,
                     p.PublishAt,
@@ -200,12 +205,13 @@ namespace API_Ecommerce.Queries
                     COALESCE(u.FullName, 'Unknown') AS SellerName,
                     p.CreatedAt,
                     p.UpdatedAt
-                FROM Products p
-                LEFT JOIN Categories c ON p.CategoryId = c.Id
+                FROM products p
+                LEFT JOIN categories c ON p.CategoryId = c.Id
                 LEFT JOIN Auths u ON p.SellerId = u.Id
+                LEFT JOIN inventory i ON p.Id = i.ProductId AND i.VariantId IS NULL
                 WHERE LOWER(p.Slug) = LOWER(@Slug);";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryFirstOrDefaultAsync<ProductResponseDto>(sql, new { Slug = slug });
         }
 
@@ -224,7 +230,8 @@ namespace API_Ecommerce.Queries
                     p.DiscountPrice,
                     p.DiscountStartDate,
                     p.DiscountEndDate,
-                    p.StockQuantity,
+                    COALESCE(i.Quantity, 0) AS StockQuantity,
+                    COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
                     p.ImageUrl,
                     p.Status,
                     p.PublishAt,
@@ -234,14 +241,41 @@ namespace API_Ecommerce.Queries
                     COALESCE(u.FullName, 'Unknown') AS SellerName,
                     p.CreatedAt,
                     p.UpdatedAt
-                FROM Products p
-                LEFT JOIN Categories c ON p.CategoryId = c.Id
+                FROM products p
+                LEFT JOIN categories c ON p.CategoryId = c.Id
                 LEFT JOIN Auths u ON p.SellerId = u.Id
+                LEFT JOIN inventory i ON p.Id = i.ProductId AND i.VariantId IS NULL
                 WHERE p.SellerId = @SellerId
                 ORDER BY p.CreatedAt DESC;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await connection.QueryAsync<ProductResponseDto>(sql, new { SellerId = sellerId });
+        }
+
+        /// <summary>
+        /// Retrieves aggregate product statistics broken down by status.
+        /// Optional sellerId allows filtering statistics for a specific seller.
+        /// </summary>
+        public async Task<ProductStatisticsDto> GetProductStatisticsAsync(int? sellerId = null)
+        {
+            var whereClause = sellerId.HasValue ? "WHERE p.SellerId = @SellerId" : string.Empty;
+
+            var sql = $@"
+                SELECT 
+                    COUNT(1) AS TotalProducts,
+                    SUM(CASE WHEN p.Status = 'Draft' THEN 1 ELSE 0 END) AS Draft,
+                    SUM(CASE WHEN p.Status = 'Pending' THEN 1 ELSE 0 END) AS Pending,
+                    SUM(CASE WHEN p.Status = 'Approved' THEN 1 ELSE 0 END) AS Approved,
+                    SUM(CASE WHEN p.Status = 'Rejected' THEN 1 ELSE 0 END) AS Rejected,
+                    SUM(CASE WHEN p.Status = 'Archived' THEN 1 ELSE 0 END) AS Archived,
+                    SUM(CASE WHEN p.Status = 'Suspended' THEN 1 ELSE 0 END) AS Suspended
+                FROM products p
+                {whereClause};";
+
+            var connection = await GetOpenConnectionAsync();
+            var result = await connection.QueryFirstOrDefaultAsync<ProductStatisticsDto>(sql, new { SellerId = sellerId });
+
+            return result ?? new ProductStatisticsDto();
         }
     }
 }

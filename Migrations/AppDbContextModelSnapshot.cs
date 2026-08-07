@@ -334,7 +334,7 @@ namespace API_Ecommerce.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -344,7 +344,11 @@ namespace API_Ecommerce.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_Categories_Status");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_Categories_UserId");
 
                     b.ToTable("Categories");
                 });
@@ -500,9 +504,13 @@ namespace API_Ecommerce.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductId");
+                    b.HasIndex("ProductId")
+                        .IsUnique()
+                        .HasFilter("[ProductId] IS NOT NULL");
 
-                    b.HasIndex("VariantId");
+                    b.HasIndex("VariantId")
+                        .IsUnique()
+                        .HasFilter("[VariantId] IS NOT NULL");
 
                     b.ToTable("inventory");
                 });
@@ -766,7 +774,8 @@ namespace API_Ecommerce.Migrations
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -791,19 +800,17 @@ namespace API_Ecommerce.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("StockQuantity")
-                        .HasColumnType("int");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryId");
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("IX_Products_CategoryId");
 
                     b.HasIndex("SellerId");
 
-                    b.ToTable("Products");
+                    b.ToTable("products");
                 });
 
             modelBuilder.Entity("API_Ecommerce.Models.ProductVariants", b =>
@@ -828,6 +835,9 @@ namespace API_Ecommerce.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int>("InitialStock")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -845,9 +855,6 @@ namespace API_Ecommerce.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("StockQuantity")
-                        .HasColumnType("int");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -860,7 +867,7 @@ namespace API_Ecommerce.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("ProductVariants");
+                    b.ToTable("product_variants");
                 });
 
             modelBuilder.Entity("API_Ecommerce.Models.Review", b =>
@@ -1050,7 +1057,7 @@ namespace API_Ecommerce.Migrations
                     b.HasOne("API_Ecommerce.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("API_Ecommerce.Models.Auth", "User")
@@ -1067,12 +1074,13 @@ namespace API_Ecommerce.Migrations
             modelBuilder.Entity("API_Ecommerce.Models.Inventory", b =>
                 {
                     b.HasOne("API_Ecommerce.Models.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId");
+                        .WithOne("Inventory")
+                        .HasForeignKey("API_Ecommerce.Models.Inventory", "ProductId");
 
                     b.HasOne("API_Ecommerce.Models.ProductVariants", "Variant")
-                        .WithMany()
-                        .HasForeignKey("VariantId");
+                        .WithOne("Inventory")
+                        .HasForeignKey("API_Ecommerce.Models.Inventory", "VariantId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Product");
 
@@ -1187,7 +1195,7 @@ namespace API_Ecommerce.Migrations
                     b.HasOne("API_Ecommerce.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("API_Ecommerce.Models.Auth", "User")
@@ -1230,7 +1238,14 @@ namespace API_Ecommerce.Migrations
 
             modelBuilder.Entity("API_Ecommerce.Models.Product", b =>
                 {
+                    b.Navigation("Inventory");
+
                     b.Navigation("Variants");
+                });
+
+            modelBuilder.Entity("API_Ecommerce.Models.ProductVariants", b =>
+                {
+                    b.Navigation("Inventory");
                 });
 #pragma warning restore 612, 618
         }

@@ -40,7 +40,7 @@ builder.Services.AddScoped<AuthQueries>();
 
 // Categories & Product Queries
 builder.Services.AddScoped<CategoriesQueries>();
-builder.Services.AddScoped<ProductQueries>(); // 👈 ADDED: Required for ProductController
+builder.Services.AddScoped<ProductQueries>();
 
 // Register Address Queries & Commands
 builder.Services.AddScoped<AddressQueries>();
@@ -56,10 +56,8 @@ builder.Services.AddScoped<FavoriteQueries>();
 
 // Token & Infrastructure Services
 builder.Services.AddScoped<ITokenService, TokenService>();
-
 builder.Services.Configure<BakongSettings>(builder.Configuration.GetSection("Bakong"));
 builder.Services.AddHttpClient<IBakongService, BakongService>();
-
 builder.Services.AddScoped<ISellerBakongService, SellerBakongService>();
 
 // ==========================================
@@ -100,7 +98,6 @@ builder.Services.AddControllers()
         // Convert Enums to readable strings ("Draft", "Pending", "Approved", "Suspended", etc.)
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     })
-    // 👈 ADDED: Enables string enum parsing in GET query parameters for Scalar/Swagger UI
     .AddMvcOptions(options =>
     {
         options.ModelMetadataDetailsProviders.Add(
@@ -142,7 +139,18 @@ builder.Services.AddOpenApi("v1", options =>
 });
 
 // ==========================================
-// 7. Build App & Middleware Pipeline
+// 7. CORS Configuration (Allow All)
+// ==========================================
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngular",
+        policy => policy.WithOrigins("http://localhost:4200", "http://127.0.0.1:4200")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod());
+});
+
+// ==========================================
+// 8. Build App & Middleware Pipeline
 // ==========================================
 var app = builder.Build();
 
@@ -158,11 +166,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Serves uploaded product, category & user images from wwwroot
+
+// ==========================================
+// 9. Middleware Pipeline Order
+// ==========================================
+app.UseStaticFiles(); // Serves uploaded product, category & user images from wwwr
+// 👈 CORS MUST be placed before Authentication and Authorization
+app.UseCors("AllowAngular");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
 app.Run();

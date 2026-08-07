@@ -27,7 +27,7 @@ namespace API_Ecommerce.Queries
         }
 
         /// <summary>
-        /// Retrieves a single user record by ID including Addresses using Dapper.
+        /// Retrieves a single user record by ID including Addresses and PhoneNumber using Dapper.
         /// </summary>
         public async Task<AuthResponseDto?> GetByIdAsync(long id)
         {
@@ -36,6 +36,7 @@ namespace API_Ecommerce.Queries
                     Id AS UserId,
                     FullName,
                     Email,
+                    PhoneNumber,
                     CAST(Role AS NVARCHAR(50)) AS Role,
                     ShopName,
                     Status,
@@ -57,7 +58,7 @@ namespace API_Ecommerce.Queries
                 FROM Addresses
                 WHERE UserId = @Id;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             using var multi = await connection.QueryMultipleAsync(sql, new { Id = id });
 
             var user = await multi.ReadFirstOrDefaultAsync<AuthResponseDto>();
@@ -71,7 +72,7 @@ namespace API_Ecommerce.Queries
         }
 
         /// <summary>
-        /// Retrieves a user by Email including Addresses using Dapper.
+        /// Retrieves a user by Email including Addresses and PhoneNumber using Dapper.
         /// </summary>
         public async Task<AuthResponseDto?> GetByEmailAsync(string email)
         {
@@ -80,6 +81,7 @@ namespace API_Ecommerce.Queries
                     Id AS UserId,
                     FullName,
                     Email,
+                    PhoneNumber,
                     CAST(Role AS NVARCHAR(50)) AS Role,
                     ShopName,
                     Status,
@@ -102,7 +104,7 @@ namespace API_Ecommerce.Queries
                 INNER JOIN Auths u ON a.UserId = u.Id
                 WHERE LOWER(u.Email) = LOWER(@Email);";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             using var multi = await connection.QueryMultipleAsync(sql, new { Email = email });
 
             var user = await multi.ReadFirstOrDefaultAsync<AuthResponseDto>();
@@ -116,7 +118,7 @@ namespace API_Ecommerce.Queries
         }
 
         /// <summary>
-        /// Retrieves all sellers including their addresses.
+        /// Retrieves all sellers including their phone number and addresses.
         /// </summary>
         public async Task<IEnumerable<AuthResponseDto>> GetAllSellersAsync()
         {
@@ -125,6 +127,7 @@ namespace API_Ecommerce.Queries
                     u.Id AS UserId,
                     u.FullName,
                     u.Email,
+                    u.PhoneNumber,
                     CAST(u.Role AS NVARCHAR(50)) AS Role,
                     u.ShopName,
                     u.Status,
@@ -144,12 +147,12 @@ namespace API_Ecommerce.Queries
                 WHERE CAST(u.Role AS NVARCHAR(50)) IN ('Seller', '1')
                 ORDER BY u.CreatedAt DESC;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await MapUsersWithAddressesAsync(connection, sql);
         }
 
         /// <summary>
-        /// Retrieves all users with optional status filtering including their addresses.
+        /// Retrieves all users with optional status filtering including phone number and addresses.
         /// </summary>
         public async Task<IEnumerable<AuthResponseDto>> GetAllUsersAsync(AuthStatus? status = null)
         {
@@ -158,6 +161,7 @@ namespace API_Ecommerce.Queries
                     u.Id AS UserId,
                     u.FullName,
                     u.Email,
+                    u.PhoneNumber,
                     CAST(u.Role AS NVARCHAR(50)) AS Role,
                     u.ShopName,
                     u.Status,
@@ -189,7 +193,7 @@ namespace API_Ecommerce.Queries
 
             sql += " ORDER BY u.CreatedAt DESC;";
 
-            using var connection = await GetOpenConnectionAsync();
+            var connection = await GetOpenConnectionAsync();
             return await MapUsersWithAddressesAsync(connection, sql, parameters);
         }
 

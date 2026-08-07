@@ -1,4 +1,8 @@
-﻿using API_Ecommerce.Models;
+﻿using System.Security.Claims;
+using System.Text;
+using System.Text.Json.Serialization;
+using API_Ecommerce.Models;
+using API_Ecommerce.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace API_Ecommerce.Data
@@ -81,6 +85,10 @@ namespace API_Ecommerce.Data
                 entity.Property(c => c.Status)
                       .HasConversion<string>();
 
+                // Performance Indexes
+                entity.HasIndex(c => c.UserId).HasName("IX_Categories_UserId");
+                entity.HasIndex(c => c.Status).HasName("IX_Categories_Status");
+
                 // CreatedBy User
                 entity.HasOne(c => c.User)
                       .WithMany()
@@ -110,18 +118,28 @@ namespace API_Ecommerce.Data
                 entity.Property(p => p.DiscountEndDate).IsRequired(false);
                 entity.Property(p => p.PublishAt).IsRequired(false);
 
+                // Performance Index for joins and counts
+                entity.HasIndex(p => p.CategoryId).HasName("IX_Products_CategoryId");
 
                 // Seller relationship
                 entity.HasOne(p => p.Seller)
                       .WithMany()
                       .HasForeignKey(p => p.SellerId)
                       .OnDelete(DeleteBehavior.Restrict);
+
+                // Product -> Variants (Cascade Delete)
+                entity.HasMany(p => p.Variants)
+                      .WithOne(v => v.Product)
+                      .HasForeignKey(v => v.ProductId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<ProductVariants>(entity =>
             {
-                entity.Property(pv => pv.Price)
-                      .HasColumnType("decimal(18,2)");
+                entity.HasOne(v => v.Inventory)
+                      .WithOne(i => i.Variant)
+                      .HasForeignKey<Inventory>(i => i.VariantId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // ==========================================
@@ -177,7 +195,7 @@ namespace API_Ecommerce.Data
             });
 
             // ==========================================
-            // 6. FAVORITES & REVIEWS (Fixes Cascade Cycle Errors)
+            // 6. FAVORITES & REVIEWS (Cascade on Product Delete)
             // ==========================================
             modelBuilder.Entity<Favorite>(entity =>
             {
@@ -189,11 +207,11 @@ namespace API_Ecommerce.Data
                       .HasForeignKey(f => f.UserId)
                       .OnDelete(DeleteBehavior.NoAction);
 
-                // Prevent SQL Server Cascade Cycle on Product
+                // Enable Cascade Delete when a product is removed
                 entity.HasOne(f => f.Product)
                       .WithMany()
                       .HasForeignKey(f => f.ProductId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<Review>(entity =>
@@ -203,11 +221,11 @@ namespace API_Ecommerce.Data
                       .HasForeignKey(r => r.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                // Prevent SQL Server Cascade Cycle on Product
+                // Enable Cascade Delete when a product is removed
                 entity.HasOne(r => r.Product)
                       .WithMany()
                       .HasForeignKey(r => r.ProductId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

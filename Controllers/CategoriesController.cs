@@ -117,6 +117,16 @@ namespace API_Ecommerce.Controllers
             return NoContent(); // 204 No Content
         }
 
+        // --- 8. Get Categories Statistics ---
+        // GET: api/categories/statistics
+        [HttpGet("statistics")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetCategoriesStatistics()
+        {
+            var statistics = await _queries.GetCategoriesStatisticsAsync();
+            return Ok(statistics);
+        }
+
         // --- Private Helper Methods to Extract Claims ---
         private int GetCurrentUserId()
         {

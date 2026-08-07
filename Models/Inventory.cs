@@ -9,21 +9,23 @@ namespace API_Ecommerce.Models
         [Key]
         public long Id { get; set; }
 
-        // --- Foreign Key to Parent Product ---
+        // --- Foreign Key to Parent Product (Used if product has NO variants) ---
         public long? ProductId { get; set; }
 
         [ForeignKey(nameof(ProductId))]
         public virtual Product? Product { get; set; }
 
-        // --- Foreign Key to Variant (Optional for non-variant items) ---
+        // --- Foreign Key to Variant (Used if product HAS variants) ---
         public long? VariantId { get; set; }
 
         [ForeignKey(nameof(VariantId))]
         public virtual ProductVariants? Variant { get; set; }
 
         // --- Quantity Tracking ---
+        [Required]
         public int Quantity { get; set; } = 0;
 
+        [Required]
         public int ReservedQuantity { get; set; } = 0;
 
         // --- Reorder Metrics ---
