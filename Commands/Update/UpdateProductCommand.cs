@@ -1,6 +1,7 @@
 using API_Ecommerce.Data;
 using API_Ecommerce.DTOs;
 using API_Ecommerce.Enums;
+using API_Ecommerce.Models;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -92,6 +93,24 @@ namespace API_Ecommerce.Commands
             product.DiscountStartDate = dto.DiscountStartDate;
             product.DiscountEndDate = dto.DiscountEndDate;
             product.Status = dto.Status;
+
+            if (product.Inventory != null)
+            {
+                product.Inventory.Quantity = dto.InitialStock;
+                product.Inventory.UpdatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                // Fallback: If for some reason inventory is null, create it
+                product.Inventory = new Inventory
+                {
+                    ProductId = product.Id,
+                    Quantity = dto.InitialStock,
+                    ReservedQuantity = 0,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.Inventories.Add(product.Inventory);
+            }
 
             if (dto.PublishAt.HasValue)
             {

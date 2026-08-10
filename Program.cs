@@ -42,17 +42,37 @@ builder.Services.AddScoped<AuthQueries>();
 builder.Services.AddScoped<CategoriesQueries>();
 builder.Services.AddScoped<ProductQueries>();
 
+//Order
+builder.Services.AddScoped<CreateOrderCommand>();
+builder.Services.AddScoped<OrderQueries>();
+builder.Services.AddScoped<CreateOrderCommand>();
+builder.Services.AddScoped<UpdateOrderStatusCommandHandler>();
+
 // Register Address Queries & Commands
 builder.Services.AddScoped<AddressQueries>();
 builder.Services.AddScoped<CreateAddressCommand>();
 builder.Services.AddScoped<UpdateAddressCommand>();
 builder.Services.AddScoped<DeleteAddressCommand>();
 
+// Payment
+builder.Services.AddScoped<PaymentQueries>();
+builder.Services.AddScoped<CreatePaymentCommandHandler>();
+builder.Services.AddScoped<VerifyPaymentCommandHandler>();
+
 // ProductVariants 
 builder.Services.AddScoped<ProductVariantQueries>();
 
+//OrderItem
+builder.Services.AddScoped<OrderItemQueries>();
+
 // Favorite
 builder.Services.AddScoped<FavoriteQueries>();
+
+// GeneratePayment
+builder.Services.AddScoped<GenerateOrderQrQuery>();
+
+// Banner
+builder.Services.AddScoped<BannerQueries>();
 
 // Token & Infrastructure Services
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -144,7 +164,9 @@ builder.Services.AddOpenApi("v1", options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular",
-        policy => policy.WithOrigins("http://localhost:4200", "http://127.0.0.1:4200")
+        policy => policy.WithOrigins("http://localhost:4200", 
+                        "http://127.0.0.1:4200",
+                        "http://localhost:54902")
                         .AllowAnyHeader()
                         .AllowAnyMethod());
 });

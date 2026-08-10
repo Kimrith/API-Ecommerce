@@ -27,9 +27,6 @@ namespace API_Ecommerce.Models
         // Links to the exact order item to ensure the user actually bought the item
         public long? OrderItemId { get; set; }
 
-        [ForeignKey(nameof(OrderItemId))]
-        public virtual OrderItem? OrderItem { get; set; }
-
         // --- Rating & Content ---
         [Required]
         [Range(1, 5, ErrorMessage = "Rating must be between 1 and 5 stars.")]

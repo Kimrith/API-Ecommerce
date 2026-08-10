@@ -1,9 +1,10 @@
-using API_Ecommerce.Data;
-using API_Ecommerce.Enums;
+using API_Ecommerce.Commands.Create;
+using API_Ecommerce.Commands.Update;
+using API_Ecommerce.DTOs;
 using API_Ecommerce.Models;
+using API_Ecommerce.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace API_Ecommerce.Controllers
@@ -12,133 +13,164 @@ namespace API_Ecommerce.Controllers
     [Route("api/[controller]")]
     public class OrderController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly OrderQueries _orderQueries;
+        private readonly CreateOrderCommand _createOrderCommand;
+        private readonly UpdateOrderStatusCommandHandler _updateOrderStatusHandler;
 
-        public OrderController(AppDbContext context)
+        public OrderController(
+            OrderQueries orderQueries,
+            CreateOrderCommand createOrderCommand,
+            UpdateOrderStatusCommandHandler updateOrderStatusHandler)
         {
-            _context = context;
+            _orderQueries = orderQueries;
+            _createOrderCommand = createOrderCommand;
+            _updateOrderStatusHandler = updateOrderStatusHandler;
         }
 
-        // 1. GET: api/Order
-        [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetAllOrders()
+        // ==========================================
+        // 1. POST: api/Order (Create Order / Checkout)
+        // ==========================================
+        [HttpPost]
+        [Authorize]
+        [ProducesResponseType(typeof(OrderDtos.Response), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CreateOrder([FromBody] OrderDtos.CheckoutRequest request)
         {
-            var orders = await _context.Orders
-                .Include(o => o.User)
-                .Include(o => o.ShippingAddress)
-                .OrderByDescending(o => o.CreatedAt)
-                .Select(o => new
-                {
-                    o.Id,
-                    o.UserId,
-                    CustomerName = o.User != null ? o.User.FullName : "Unknown",
-                    CustomerEmail = o.User != null ? o.User.Email : "Unknown",
-                    o.TotalAmount,
-                    o.Status,
-                    StatusString = o.Status.ToString(),
-                    o.CreatedAt,
-                    o.OrderNumber,
-                    o.Currency,
-                    o.Notes,
-                    ShippingAddress = o.ShippingAddress != null ? new
-                    {
-                        o.ShippingAddress.Id,
-                        o.ShippingAddress.StreetAddress,
-                        o.ShippingAddress.City,
-                        o.ShippingAddress.State,
-                        o.ShippingAddress.PostalCode,
-                        o.ShippingAddress.Country,
-                        o.ShippingAddress.AddressType,
-                        o.ShippingAddress.IsDefault
-                    } : null
-                })
-                .ToListAsync();
-
-            return Ok(orders);
-        }
-
-        // 2. GET: api/Order/statistics
-        [HttpGet("statistics")]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetOrderStatistics()
-        {
-            var totalOrders = await _context.Orders.CountAsync();
-            var totalRevenue = await _context.Orders
-                .SumAsync(o => o.TotalAmount);
-
-            var pendingCount = await _context.Orders.CountAsync(o => o.Status == OrderStatus.Pending);
-            var processingCount = await _context.Orders.CountAsync(o => o.Status == OrderStatus.Processing);
-            var shippedCount = await _context.Orders.CountAsync(o => o.Status == OrderStatus.Shipped);
-            var deliveredCount = await _context.Orders.CountAsync(o => o.Status == OrderStatus.Delivered || o.Status == OrderStatus.Refunded);
-            var completedCount = await _context.Orders.CountAsync(o => o.Status == OrderStatus.Delivered);
-            var cancelledCount = await _context.Orders.CountAsync(o => o.Status == OrderStatus.Cancelled);
-
-            // Monthly revenue analytics (last 6 months)
-            var now = DateTime.UtcNow;
-            var monthlyRevenue = new List<decimal>();
-            var monthlyLabels = new List<string>();
-
-            for (int i = 5; i >= 0; i--)
+            try
             {
-                var targetDate = now.AddMonths(-i);
-                var label = targetDate.ToString("MMM");
-                monthlyLabels.Add(label);
-
-                var startOfMonth = new DateTime(targetDate.Year, targetDate.Month, 1);
-                var endOfMonth = startOfMonth.AddMonths(1).AddTicks(-1);
-
-                var sum = await _context.Orders
-                    .Where(o => o.CreatedAt >= startOfMonth && o.CreatedAt <= endOfMonth)
-                    .SumAsync(o => o.TotalAmount);
-
-                monthlyRevenue.Add(sum);
-            }
-
-            return Ok(new
-            {
-                totalOrders,
-                totalRevenue,
-                pendingCount,
-                processingCount,
-                shippedCount,
-                deliveredCount,
-                completedCount,
-                cancelledCount,
-                analytics = new
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out long userId))
                 {
-                    labels = monthlyLabels,
-                    data = monthlyRevenue
+                    return Unauthorized(new { message = "Invalid or missing user token." });
                 }
-            });
+
+                var orderResponse = await _createOrderCommand.ExecuteAsync(
+                    userId,
+                    request.OrderDetails,
+                    request.CartItems,
+                    request.Currency ?? "USD"
+                );
+
+                return CreatedAtAction(
+                    nameof(GetOrderById),
+                    new { id = orderResponse.Id },
+                    orderResponse
+                );
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while processing your order.", details = ex.Message });
+            }
         }
 
-        // 3. PATCH: api/Order/{id}/status
-        [HttpPatch("{id:long}/status")]
+        // ==========================================
+        // 2. GET: api/Order/{id} (Fetch single order)
+        // ==========================================
+        [HttpGet("{id:long}")]
         [AllowAnonymous]
-        public async Task<IActionResult> UpdateOrderStatus(long id, [FromBody] UpdateOrderStatusDto dto)
+        [ProducesResponseType(typeof(OrderDtos.Response), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetOrderById(long id)
         {
-            var order = await _context.Orders.FindAsync(id);
+            var order = await _orderQueries.GetOrderByIdAsync(id);
+
             if (order == null)
             {
                 return NotFound(new { message = $"Order with ID {id} was not found." });
             }
 
-            order.Status = dto.Status;
-            order.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-
-            return Ok(new
-            {
-                message = "Order status updated successfully.",
-                orderId = order.Id,
-                status = order.Status.ToString()
-            });
+            return Ok(order);
         }
-    }
 
-    public class UpdateOrderStatusDto
-    {
-        public OrderStatus Status { get; set; }
+        // ==========================================
+        // 3. GET: api/Order
+        // ==========================================
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetAllOrders([FromQuery] PaginationParamsDtos paginationParams)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
+
+            long? userId = null;
+            if (!string.IsNullOrEmpty(userIdClaim) && long.TryParse(userIdClaim, out long parsedUserId))
+            {
+                userId = parsedUserId;
+            }
+
+            var result = await _orderQueries.GetAllOrdersAsync(userId, userRole, paginationParams);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Get paginated orders containing products for a specific seller ID.
+        /// </summary>
+        [HttpGet("seller/{sellerId:long}")]
+        public async Task<IActionResult> GetOrdersBySellerId(long sellerId, [FromQuery] PaginationParamsDtos paginationParams)
+        {
+            var result = await _orderQueries.GetOrdersBySellerIdAsync(sellerId, paginationParams);
+            return Ok(result);
+        }
+
+        // ==========================================
+        // 3b. GET: api/Order/user/{userId} (Fetch orders for specific customer)
+        // ==========================================
+        [HttpGet("user/{userId:long}")]
+        [Authorize]
+        public async Task<IActionResult> GetOrdersByUserId(long userId)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out long currentUserId))
+            {
+                return Unauthorized(new { message = "Invalid or missing user token." });
+            }
+
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
+            if (currentUserId != userId && userRole != "Admin")
+            {
+                return Forbid();
+            }
+
+            var orders = await _orderQueries.GetOrdersByUserIdAsync(userId);
+            return Ok(orders);
+        }
+
+        // ==========================================
+        // 4. GET: api/Order/statistics
+        // ==========================================
+        [HttpGet("statistics")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetOrderStatistics([FromQuery] long? sellerId)
+        {
+            var statistics = await _orderQueries.GetOrderStatisticsAsync(sellerId);
+            return Ok(statistics);
+        }
+
+        // ==========================================
+        // 5. PATCH: api/Order/{id}/status
+        // ==========================================
+        [HttpPatch("{id:long}/status")]
+        [AllowAnonymous]
+        public async Task<IActionResult> UpdateOrderStatus(long id, [FromBody] OrderDtos.UpdateStatus dto)
+        {
+            var (success, message, data) = await _updateOrderStatusHandler.HandleAsync(id, dto);
+
+            if (!success)
+            {
+                return NotFound(new { message });
+            }
+
+            return Ok(data);
+        }
     }
 }

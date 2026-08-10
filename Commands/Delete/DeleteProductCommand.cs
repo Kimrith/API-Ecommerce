@@ -48,18 +48,12 @@ namespace API_Ecommerce.Commands
             // 3. Clean up physical image file
             DeleteImageFile(product.ImageUrl);
 
-            // 4. Remove all referencing child records to bypass foreign key locks
-            var orderItems = await _context.OrderItems.Where(oi => oi.ProductId == request.Id).ToListAsync(cancellationToken);
-            _context.OrderItems.RemoveRange(orderItems);
-
+            // 4. Remove all referencing child records to bypass foreign key locks (OrderItems removed)
             var favorites = await _context.Favorites.Where(f => f.ProductId == request.Id).ToListAsync(cancellationToken);
             _context.Favorites.RemoveRange(favorites);
 
             var reviews = await _context.Reviews.Where(r => r.ProductId == request.Id).ToListAsync(cancellationToken);
             _context.Reviews.RemoveRange(reviews);
-
-            var cartItems = await _context.CartItems.Where(ci => ci.ProductId == request.Id).ToListAsync(cancellationToken);
-            _context.CartItems.RemoveRange(cartItems);
 
             // 5. Remove product-level inventory if any
             if (product.Inventory != null)

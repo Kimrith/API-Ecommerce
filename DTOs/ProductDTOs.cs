@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using API_Ecommerce.Enums;
 using Microsoft.AspNetCore.Http;
 
@@ -45,6 +45,7 @@ namespace API_Ecommerce.DTOs
 
         public long SellerId { get; set; }
         public string SellerName { get; set; } = string.Empty;
+        public string SellerRole { get; set; } = string.Empty;
 
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
@@ -122,6 +123,9 @@ namespace API_Ecommerce.DTOs
         [Required(ErrorMessage = "Category ID is required.")]
         public long CategoryId { get; set; }
 
+        [Range(0, int.MaxValue, ErrorMessage = "Initial stock cannot be negative.")]
+        public int InitialStock { get; set; } = 0;
+
         public ProductStatus Status { get; set; }
         public DateTime? PublishAt { get; set; }
         public IFormFile? Image { get; set; }
@@ -148,5 +152,16 @@ namespace API_Ecommerce.DTOs
     {
         [Required(ErrorMessage = "Status is required.")]
         public ProductStatus Status { get; set; }
+    }
+
+    public class TopSellingProductDto
+    {
+        public long ProductId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; }
+        public string? Slug { get; set; }
+        public decimal Price { get; set; }
+        public int SalesCount { get; set; }
+        public decimal Revenue { get; set; }
     }
 }

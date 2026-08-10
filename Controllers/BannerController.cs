@@ -45,6 +45,7 @@ namespace API_Ecommerce.Controllers
 
         // POST: api/banner
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<ActionResult<BannerResponseDto>> CreateBanner([FromForm] CreateBannerDto dto)
         {
             var command = new CreateBannerCommand(dto);

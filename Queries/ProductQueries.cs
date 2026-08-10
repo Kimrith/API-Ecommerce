@@ -112,6 +112,106 @@ namespace API_Ecommerce.Queries
                     COALESCE(c.Name, '') AS CategoryName,
                     p.SellerId,
                     COALESCE(u.FullName, 'Unknown') AS SellerName,
+                    COALESCE(u.Role, '') AS SellerRole,
+                    p.CreatedAt,
+                    p.UpdatedAt
+                FROM products p
+                LEFT JOIN categories c ON p.CategoryId = c.Id
+                LEFT JOIN Auths u ON p.SellerId = u.Id
+                LEFT JOIN inventory i ON p.Id = i.ProductId AND i.VariantId IS NULL
+                {whereSql}
+                {orderBySql}
+                OFFSET @Offset ROWS
+                FETCH NEXT @PageSize ROWS ONLY;
+
+                SELECT COUNT(1)
+                FROM products p
+                {whereSql};";
+
+            var connection = await GetOpenConnectionAsync();
+            using var multi = await connection.QueryMultipleAsync(sql, dynamicParameters);
+
+            var items = (await multi.ReadAsync<ProductResponseDto>()).ToList();
+            int totalItems = await multi.ReadFirstAsync<int>();
+
+            return new PagedResultDto<ProductResponseDto>
+            {
+                Items = items,
+                TotalItems = totalItems,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
+            };
+        }
+
+        /// <summary>
+        /// Retrieves paginated products belonging specifically to a logged-in seller with optional filters.
+        /// </summary>
+        public async Task<PagedResultDto<ProductResponseDto>> GetProductsBySellerPagedAsync(
+            int sellerId,
+            int pageNumber = 1,
+            int pageSize = 10,
+            string? searchTerm = null,
+            int? categoryId = null,
+            string? sortBy = null)
+        {
+            pageNumber = pageNumber < 1 ? 1 : pageNumber;
+            pageSize = pageSize < 1 ? 10 : (pageSize > 100 ? 100 : pageSize);
+            int offset = (pageNumber - 1) * pageSize;
+
+            var whereClauses = new List<string> { "p.SellerId = @SellerId" };
+            var dynamicParameters = new DynamicParameters();
+            dynamicParameters.Add("SellerId", sellerId);
+
+            // 1. Search Filter (Name or Description)
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                whereClauses.Add("(LOWER(p.Name) LIKE @SearchTerm OR LOWER(p.Description) LIKE @SearchTerm)");
+                dynamicParameters.Add("SearchTerm", $"%{searchTerm.Trim().ToLower()}%");
+            }
+
+            // 2. Category Filter
+            if (categoryId.HasValue)
+            {
+                whereClauses.Add("p.CategoryId = @CategoryId");
+                dynamicParameters.Add("CategoryId", categoryId.Value);
+            }
+
+            string whereSql = " WHERE " + string.Join(" AND ", whereClauses);
+
+            // 3. Dynamic Sorting
+            string orderBySql = sortBy?.ToLower() switch
+            {
+                "price_asc" => "ORDER BY p.Price ASC",
+                "price_desc" => "ORDER BY p.Price DESC",
+                "name" => "ORDER BY p.Name ASC",
+                "oldest" => "ORDER BY p.CreatedAt ASC",
+                _ => "ORDER BY p.CreatedAt DESC"
+            };
+
+            dynamicParameters.Add("Offset", offset);
+            dynamicParameters.Add("PageSize", pageSize);
+
+            var sql = $@"
+                SELECT 
+                    p.Id,
+                    p.Name,
+                    p.Slug,
+                    p.Description,
+                    p.Price,
+                    p.DiscountPrice,
+                    p.DiscountStartDate,
+                    p.DiscountEndDate,
+                    COALESCE(i.Quantity, 0) AS StockQuantity,
+                    COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
+                    p.ImageUrl,
+                    p.Status,
+                    p.PublishAt,
+                    p.CategoryId,
+                    COALESCE(c.Name, '') AS CategoryName,
+                    p.SellerId,
+                    COALESCE(u.FullName, 'Unknown') AS SellerName,
+                    COALESCE(u.Role, '') AS SellerRole,
                     p.CreatedAt,
                     p.UpdatedAt
                 FROM products p
@@ -167,6 +267,7 @@ namespace API_Ecommerce.Queries
                     COALESCE(c.Name, '') AS CategoryName,
                     p.SellerId,
                     COALESCE(u.FullName, 'Unknown') AS SellerName,
+                    COALESCE(u.Role, '') AS SellerRole,
                     p.CreatedAt,
                     p.UpdatedAt
                 FROM products p
@@ -203,6 +304,7 @@ namespace API_Ecommerce.Queries
                     COALESCE(c.Name, '') AS CategoryName,
                     p.SellerId,
                     COALESCE(u.FullName, 'Unknown') AS SellerName,
+                    COALESCE(u.Role, '') AS SellerRole,
                     p.CreatedAt,
                     p.UpdatedAt
                 FROM products p
@@ -239,6 +341,7 @@ namespace API_Ecommerce.Queries
                     COALESCE(c.Name, '') AS CategoryName,
                     p.SellerId,
                     COALESCE(u.FullName, 'Unknown') AS SellerName,
+                    COALESCE(u.Role, '') AS SellerRole,
                     p.CreatedAt,
                     p.UpdatedAt
                 FROM products p
@@ -276,6 +379,31 @@ namespace API_Ecommerce.Queries
             var result = await connection.QueryFirstOrDefaultAsync<ProductStatisticsDto>(sql, new { SellerId = sellerId });
 
             return result ?? new ProductStatisticsDto();
+        }
+
+        /// <summary>
+        /// Retrieves top selling products based on completed, delivered, processing, or shipped order quantities.
+        /// </summary>
+        public async Task<IEnumerable<TopSellingProductDto>> GetTopSellingProductsAsync(int limit = 5)
+        {
+            const string sql = @"
+                SELECT TOP (@Limit)
+                    oi.ProductId,
+                    p.Name,
+                    p.ImageUrl,
+                    p.Slug,
+                    p.Price,
+                    SUM(oi.Quantity) AS SalesCount,
+                    SUM(oi.TotalPrice) AS Revenue
+                FROM order_items oi
+                INNER JOIN orders o ON oi.OrderId = o.Id
+                LEFT JOIN products p ON oi.ProductId = p.Id
+                WHERE o.Status IN (1, 2, 3, 5)
+                GROUP BY oi.ProductId, p.Name, p.ImageUrl, p.Slug, p.Price
+                ORDER BY SalesCount DESC;";
+
+            var connection = await GetOpenConnectionAsync();
+            return await connection.QueryAsync<TopSellingProductDto>(sql, new { Limit = limit });
         }
     }
 }

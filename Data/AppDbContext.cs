@@ -23,10 +23,6 @@ namespace API_Ecommerce.Data
         public DbSet<ProductVariants> ProductVariants { get; set; }
         public DbSet<Inventory> Inventories { get; set; }
 
-        // --- Shopping & Cart ---
-        public DbSet<Cart> Carts { get; set; }
-        public DbSet<CartItem> CartItems { get; set; }
-
         // --- Orders & Transactions ---
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
@@ -147,6 +143,18 @@ namespace API_Ecommerce.Data
             // ==========================================
             modelBuilder.Entity<Order>(entity =>
             {
+                entity.Property(o => o.Subtotal)
+                      .HasColumnType("decimal(18,2)");
+
+                entity.Property(o => o.TaxAmount)
+                      .HasColumnType("decimal(18,2)");
+
+                entity.Property(o => o.ShippingAmount)
+                      .HasColumnType("decimal(18,2)");
+
+                entity.Property(o => o.DiscountAmount)
+                      .HasColumnType("decimal(18,2)");
+
                 entity.Property(o => o.TotalAmount)
                       .HasColumnType("decimal(18,2)");
 
@@ -155,21 +163,17 @@ namespace API_Ecommerce.Data
                       .WithMany()
                       .HasForeignKey(o => o.UserId)
                       .OnDelete(DeleteBehavior.Restrict);
-            });
 
-            modelBuilder.Entity<OrderItem>(entity =>
-            {
-                entity.Property(oi => oi.UnitPrice)
-                      .HasColumnType("decimal(18,2)");
-
-                entity.HasOne(oi => oi.Order)
-                      .WithMany(o => o.OrderItems)
-                      .HasForeignKey(oi => oi.OrderId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(oi => oi.Product)
+                // Shipping Address relationship
+                entity.HasOne(o => o.ShippingAddress)
                       .WithMany()
-                      .HasForeignKey(oi => oi.ProductId)
+                      .HasForeignKey(o => o.ShippingAddressId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // Billing Address relationship
+                entity.HasOne(o => o.BillingAddress)
+                      .WithMany()
+                      .HasForeignKey(o => o.BillingAddressId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -226,6 +230,23 @@ namespace API_Ecommerce.Data
                       .WithMany()
                       .HasForeignKey(r => r.ProductId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<OrderItem>(entity =>
+            {
+                entity.ToTable("order_items");
+                entity.Property(oi => oi.UnitPrice).HasColumnType("decimal(18,2)");
+                entity.Property(oi => oi.TotalPrice).HasColumnType("decimal(18,2)");
+
+                entity.HasOne(oi => oi.Order)
+                      .WithMany()
+                      .HasForeignKey(oi => oi.OrderId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(oi => oi.Product)
+                      .WithMany()
+                      .HasForeignKey(oi => oi.ProductId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

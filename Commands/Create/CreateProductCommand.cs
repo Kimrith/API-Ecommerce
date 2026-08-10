@@ -128,6 +128,7 @@ namespace API_Ecommerce.Commands
                 CategoryName = category.Name,
                 SellerId = product.SellerId,
                 SellerName = seller.FullName,
+                SellerRole = seller.Role.ToString(),
                 CreatedAt = product.CreatedAt,
                 UpdatedAt = product.UpdatedAt
             };

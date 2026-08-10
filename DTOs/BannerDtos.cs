@@ -9,7 +9,7 @@ namespace API_Ecommerce.DTOs
         public long Id { get; set; }
         public string Title { get; set; } = string.Empty;
         public string? Subtitle { get; set; }
-        public string ImageUrl { get; set; } = string.Empty;
+        public string? ImageUrl { get; set; } = string.Empty;
         public string? TargetUrl { get; set; }
         public string Position { get; set; } = string.Empty;
         public int DisplayOrder { get; set; }
@@ -43,7 +43,7 @@ namespace API_Ecommerce.DTOs
         public DateTime? ExpiresAt { get; set; }
 
         [Required(ErrorMessage = "Banner image is required.")]
-        public IFormFile Image { get; set; } = null!;
+        public IFormFile? Image { get; set; } = null!;
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {

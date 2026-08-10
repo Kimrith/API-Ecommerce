@@ -1,4 +1,5 @@
-﻿using API_Ecommerce.Enums;
+using API_Ecommerce.Commands.Cart;
+using API_Ecommerce.Enums;
 
 namespace API_Ecommerce.DTOs
 {
@@ -10,18 +11,28 @@ namespace API_Ecommerce.DTOs
         public record Create(
             long ShippingAddressId,
             long? BillingAddressId, // Optional: defaults to ShippingAddressId if null in handler
-            string? Notes
+            string? Notes,
+            string? CouponCode
         );
 
         // ==========================================
-        // 2. UPDATE STATUS REQUEST (Admin / Payment Callback)
+        // 2. FULL CHECKOUT REQUEST (From Controller / Frontend)
+        // ==========================================
+        public record CheckoutRequest(
+            Create OrderDetails,
+            List<CartItemDto> CartItems,
+            string? Currency
+        );
+
+        // ==========================================
+        // 3. UPDATE STATUS REQUEST (Admin / Payment Callback)
         // ==========================================
         public record UpdateStatus(
             OrderStatus Status
         );
 
         // ==========================================
-        // 3. FULL ORDER RESPONSE
+        // 4. FULL ORDER RESPONSE
         // ==========================================
         public record Response
         {
@@ -35,16 +46,18 @@ namespace API_Ecommerce.DTOs
             public decimal DiscountAmount { get; init; }
             public decimal TotalAmount { get; init; }
             public string Currency { get; init; } = "USD";
-            public AddressResponseDto? ShippingAddress { get; init; }
-            public AddressResponseDto? BillingAddress { get; init; }
+            public UserAddressResponseDto? ShippingAddress { get; init; }
+            public UserAddressResponseDto? BillingAddress { get; init; }
             public string? Notes { get; init; }
-            public List<OrderItemDtos.Response> Items { get; init; } = new();
             public DateTime CreatedAt { get; init; }
             public DateTime? UpdatedAt { get; init; }
+            public string? QrImageBase64 { get; init; }
+            public string? Md5 { get; init; }
+            public string? KhqrString { get; init; }
         }
 
         // ==========================================
-        // 4. SUMMARY RESPONSE (For Order History List)
+        // 5. SUMMARY RESPONSE (For Order History List)
         // ==========================================
         public record SummaryResponse
         {

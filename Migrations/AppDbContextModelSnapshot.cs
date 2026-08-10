@@ -226,84 +226,6 @@ namespace API_Ecommerce.Migrations
                     b.ToTable("banners");
                 });
 
-            modelBuilder.Entity("API_Ecommerce.Models.Cart", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("AppliedCouponCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("DiscountAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SessionId")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<long?>("UserId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("carts");
-                });
-
-            modelBuilder.Entity("API_Ecommerce.Models.CartItem", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<long>("CartId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<long>("ProductId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<long?>("VariantId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CartId");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("VariantId");
-
-                    b.ToTable("cart_items");
-                });
-
             modelBuilder.Entity("API_Ecommerce.Models.Categories", b =>
                 {
                     b.Property<long>("Id")
@@ -634,26 +556,14 @@ namespace API_Ecommerce.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<long>("OrderId")
                         .HasColumnType("bigint");
 
                     b.Property<long>("ProductId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("ProductName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
-
-                    b.Property<string>("Sku")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
 
                     b.Property<decimal>("TotalPrice")
                         .HasColumnType("decimal(18,2)");
@@ -661,22 +571,13 @@ namespace API_Ecommerce.Migrations
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<long?>("VariantId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("VariantName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("OrderId");
 
                     b.HasIndex("ProductId");
 
-                    b.HasIndex("VariantId");
-
-                    b.ToTable("order_items");
+                    b.ToTable("order_items", (string)null);
                 });
 
             modelBuilder.Entity("API_Ecommerce.Models.Payment", b =>
@@ -912,8 +813,6 @@ namespace API_Ecommerce.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderItemId");
-
                     b.HasIndex("ProductId");
 
                     b.HasIndex("UserId");
@@ -978,40 +877,6 @@ namespace API_Ecommerce.Migrations
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("API_Ecommerce.Models.Cart", b =>
-                {
-                    b.HasOne("API_Ecommerce.Models.Auth", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("API_Ecommerce.Models.CartItem", b =>
-                {
-                    b.HasOne("API_Ecommerce.Models.Cart", "Cart")
-                        .WithMany("CartItems")
-                        .HasForeignKey("CartId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("API_Ecommerce.Models.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("API_Ecommerce.Models.ProductVariants", "Variant")
-                        .WithMany()
-                        .HasForeignKey("VariantId");
-
-                    b.Navigation("Cart");
-
-                    b.Navigation("Product");
-
-                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("API_Ecommerce.Models.Categories", b =>
@@ -1102,11 +967,13 @@ namespace API_Ecommerce.Migrations
                 {
                     b.HasOne("API_Ecommerce.Models.Address", "BillingAddress")
                         .WithMany()
-                        .HasForeignKey("BillingAddressId");
+                        .HasForeignKey("BillingAddressId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("API_Ecommerce.Models.Address", "ShippingAddress")
                         .WithMany()
-                        .HasForeignKey("ShippingAddressId");
+                        .HasForeignKey("ShippingAddressId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("API_Ecommerce.Models.Auth", "User")
                         .WithMany()
@@ -1123,7 +990,7 @@ namespace API_Ecommerce.Migrations
             modelBuilder.Entity("API_Ecommerce.Models.OrderItem", b =>
                 {
                     b.HasOne("API_Ecommerce.Models.Order", "Order")
-                        .WithMany("OrderItems")
+                        .WithMany()
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1134,15 +1001,9 @@ namespace API_Ecommerce.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("API_Ecommerce.Models.ProductVariants", "Variant")
-                        .WithMany()
-                        .HasForeignKey("VariantId");
-
                     b.Navigation("Order");
 
                     b.Navigation("Product");
-
-                    b.Navigation("Variant");
                 });
 
             modelBuilder.Entity("API_Ecommerce.Models.Payment", b =>
@@ -1188,10 +1049,6 @@ namespace API_Ecommerce.Migrations
 
             modelBuilder.Entity("API_Ecommerce.Models.Review", b =>
                 {
-                    b.HasOne("API_Ecommerce.Models.OrderItem", "OrderItem")
-                        .WithMany()
-                        .HasForeignKey("OrderItemId");
-
                     b.HasOne("API_Ecommerce.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductId")
@@ -1204,8 +1061,6 @@ namespace API_Ecommerce.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("OrderItem");
-
                     b.Navigation("Product");
 
                     b.Navigation("User");
@@ -1216,11 +1071,6 @@ namespace API_Ecommerce.Migrations
                     b.Navigation("Addresses");
                 });
 
-            modelBuilder.Entity("API_Ecommerce.Models.Cart", b =>
-                {
-                    b.Navigation("CartItems");
-                });
-
             modelBuilder.Entity("API_Ecommerce.Models.Categories", b =>
                 {
                     b.Navigation("Products");
@@ -1229,11 +1079,6 @@ namespace API_Ecommerce.Migrations
             modelBuilder.Entity("API_Ecommerce.Models.Coupon", b =>
                 {
                     b.Navigation("CouponUsages");
-                });
-
-            modelBuilder.Entity("API_Ecommerce.Models.Order", b =>
-                {
-                    b.Navigation("OrderItems");
                 });
 
             modelBuilder.Entity("API_Ecommerce.Models.Product", b =>
