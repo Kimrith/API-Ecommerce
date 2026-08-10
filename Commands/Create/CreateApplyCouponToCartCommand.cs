@@ -6,13 +6,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace API_Ecommerce.Commands.Cart
 {
+    // 1. Updated Request Command accepting items from Angular local storage
     public record ApplyCouponToCartCommand(
         long? UserId,
-        string? SessionId,
-        string CouponCode
-    ) : IRequest<CartDtos.Response>;
+        string CouponCode,
+        List<CartItemDto> CartItems
+    ) : IRequest<CartCalculationResponseDto>;
 
-    public class ApplyCouponToCartCommandHandler : IRequestHandler<ApplyCouponToCartCommand, CartDtos.Response>
+    public class ApplyCouponToCartCommandHandler : IRequestHandler<ApplyCouponToCartCommand, CartCalculationResponseDto>
     {
         private readonly AppDbContext _context;
 
@@ -21,30 +22,11 @@ namespace API_Ecommerce.Commands.Cart
             _context = context;
         }
 
-        public async Task<CartDtos.Response> Handle(ApplyCouponToCartCommand request, CancellationToken cancellationToken)
+        public async Task<CartCalculationResponseDto> Handle(ApplyCouponToCartCommand request, CancellationToken cancellationToken)
         {
-            var cartQuery = _context.Carts
-                .Include(c => c.CartItems)
-                .ThenInclude(i => i.Product)
-                .Include(c => c.CartItems)
-                .ThenInclude(i => i.Variant)
-                .AsQueryable();
-
-            // Explicitly use fully qualified model name to prevent namespace collision
-            API_Ecommerce.Models.Cart? cart = null;
-
-            if (request.UserId.HasValue)
+            if (request.CartItems == null || !request.CartItems.Any())
             {
-                cart = await cartQuery.FirstOrDefaultAsync(c => c.UserId == request.UserId.Value, cancellationToken);
-            }
-            else if (!string.IsNullOrWhiteSpace(request.SessionId))
-            {
-                cart = await cartQuery.FirstOrDefaultAsync(c => c.SessionId == request.SessionId, cancellationToken);
-            }
-
-            if (cart == null || !cart.CartItems.Any())
-            {
-                throw new KeyNotFoundException("Active shopping cart not found or cart is empty.");
+                throw new InvalidOperationException("Cart is empty.");
             }
 
             var cleanCode = request.CouponCode.Trim();
@@ -68,7 +50,20 @@ namespace API_Ecommerce.Commands.Cart
                 throw new InvalidOperationException("This coupon has reached its total usage limit.");
             }
 
-            decimal subtotal = cart.CartItems.Sum(i => i.Price * i.Quantity);
+            // Optional: Check per-user limit if UserId is provided
+            if (request.UserId.HasValue && coupon.UsageLimitPerUser.HasValue)
+            {
+                int userUsageCount = await _context.CouponUsages
+                    .CountAsync(cu => cu.CouponId == coupon.Id && cu.UserId == request.UserId.Value, cancellationToken);
+
+                if (userUsageCount >= coupon.UsageLimitPerUser.Value)
+                {
+                    throw new InvalidOperationException("You have already reached your usage limit for this coupon.");
+                }
+            }
+
+            // Calculate subtotal from items coming from Angular local storage
+            decimal subtotal = request.CartItems.Sum(i => i.Price * i.Quantity);
 
             if (coupon.MinimumAmount.HasValue && subtotal < coupon.MinimumAmount.Value)
             {
@@ -93,39 +88,34 @@ namespace API_Ecommerce.Commands.Cart
                 }
             }
 
-            cart.AppliedCouponCode = coupon.Code;
-            cart.DiscountAmount = discountAmount;
-            cart.TotalAmount = Math.Max(0, subtotal - discountAmount);
-            cart.UpdatedAt = DateTime.UtcNow;
+            decimal totalAmount = Math.Max(0, subtotal - discountAmount);
 
-            await _context.SaveChangesAsync(cancellationToken);
-
-            return new CartDtos.Response
+            // Return calculated results back to Angular so it can update state
+            return new CartCalculationResponseDto
             {
-                Id = cart.Id,
-                UserId = cart.UserId,
-                SessionId = cart.SessionId,
-                Items = cart.CartItems.Select(i => new CartItemDtos.Response
-                {
-                    Id = i.Id,
-                    ProductId = i.ProductId,
-                    ProductName = i.Product?.Name ?? string.Empty,
-                    ProductImageUrl = i.Product?.ImageUrl,
-                    VariantId = i.VariantId,
-                    // If your ProductVariants model uses a different property name for name, change it here
-                    VariantName = null,
-                    Quantity = i.Quantity,
-                    Price = i.Price
-                    // Removed Subtotal assignment since it is a calculated read-only property in the DTO
-                }).ToList(),
+                AppliedCouponCode = coupon.Code,
                 SubtotalAmount = subtotal,
-                AppliedCouponCode = cart.AppliedCouponCode,
-                DiscountAmount = cart.DiscountAmount,
-                TotalAmount = cart.TotalAmount,
-                CreatedAt = cart.CreatedAt,
-                UpdatedAt = cart.UpdatedAt,
-                ExpiresAt = cart.ExpiresAt
+                DiscountAmount = discountAmount,
+                TotalAmount = totalAmount
             };
         }
+    }
+
+    // Response DTO for frontend calculation update
+    public class CartCalculationResponseDto
+    {
+        public string AppliedCouponCode { get; set; } = string.Empty;
+        public decimal SubtotalAmount { get; set; }
+        public decimal DiscountAmount { get; set; }
+        public decimal TotalAmount { get; set; }
+    }
+
+    // Item structure matching localStorage data sent from Angular
+    public class CartItemDto
+    {
+        public long ProductId { get; set; }
+        public long? VariantId { get; set; }
+        public decimal Price { get; set; }
+        public int Quantity { get; set; }
     }
 }

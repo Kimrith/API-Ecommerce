@@ -1,3 +1,6 @@
+// ==========================================
+// 1. UPDATED ORDER MODEL (Models/Order.cs)
+// ==========================================
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using API_Ecommerce.Enums;
@@ -50,8 +53,6 @@ namespace API_Ecommerce.Models
         public virtual Address? BillingAddress { get; set; }
 
         public string? Notes { get; set; }
-
-        public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }

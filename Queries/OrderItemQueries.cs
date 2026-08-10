@@ -1,171 +1,104 @@
-﻿using System.Data;
-using API_Ecommerce.DTOs;
-using Dapper;
-using MediatR;
+﻿using API_Ecommerce.DTOs;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 
 namespace API_Ecommerce.Queries
 {
     public class OrderItemQueries
     {
-        // =========================================================
-        // 1. QUERY: GET ALL ITEMS FOR A SPECIFIC ORDER (RAW SQL)
-        // =========================================================
-        public record GetOrderItemsByOrderIdQuery(
-            long OrderId,
-            long? UserId = null
-        ) : IRequest<List<OrderItemDtos.Response>>;
+        private readonly string _connectionString;
 
-        public class GetOrderItemsByOrderIdQueryHandler
-            : IRequestHandler<GetOrderItemsByOrderIdQuery, List<OrderItemDtos.Response>>
+        public OrderItemQueries(IConfiguration configuration)
         {
-            private readonly string _connectionString;
-
-            public GetOrderItemsByOrderIdQueryHandler(IConfiguration configuration)
-            {
-                _connectionString = configuration.GetConnectionString("DefaultConnection")
-                    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-            }
-
-            public async Task<List<OrderItemDtos.Response>> Handle(
-                GetOrderItemsByOrderIdQuery request,
-                CancellationToken cancellationToken)
-            {
-                var sql = @"
-                    SELECT 
-                        oi.Id,
-                        oi.OrderId,
-                        oi.ProductId,
-                        oi.ProductName,
-                        oi.VariantId,
-                        oi.VariantName,
-                        oi.Sku,
-                        oi.Quantity,
-                        oi.UnitPrice,
-                        oi.TotalPrice,
-                        oi.CreatedAt,
-                        o.UserId,
-                        u.Email AS UserEmail
-                    FROM order_items oi
-                    INNER JOIN orders o ON oi.OrderId = o.Id
-                    LEFT JOIN Auths u ON o.UserId = u.Id
-                    WHERE oi.OrderId = @OrderId
-                      AND (@UserId IS NULL OR o.UserId = @UserId)
-                    ORDER BY oi.Id ASC";
-
-                using IDbConnection db = new SqlConnection(_connectionString);
-
-                var items = await db.QueryAsync<OrderItemDtos.Response>(
-                    new CommandDefinition(sql, new { request.OrderId, request.UserId }, cancellationToken: cancellationToken)
-                );
-
-                return items.ToList();
-            }
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
         }
 
-        // =========================================================
-        // 2. QUERY: GET SINGLE ORDER ITEM BY ID (RAW SQL)
-        // =========================================================
-        public record GetOrderItemByIdQuery(
-            long Id,
-            long? UserId = null
-        ) : IRequest<OrderItemDtos.Response?>;
-
-        public class GetOrderItemByIdQueryHandler
-            : IRequestHandler<GetOrderItemByIdQuery, OrderItemDtos.Response?>
+        public async Task<List<OrderItemDtos.Response>> GetItemsByOrderIdAsync(long orderId)
         {
-            private readonly string _connectionString;
+            var items = new List<OrderItemDtos.Response>();
 
-            public GetOrderItemByIdQueryHandler(IConfiguration configuration)
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var query = @"
+                SELECT 
+                    oi.Id, 
+                    oi.ProductId, 
+                    ISNULL(p.Name, 'Unknown Product') AS ProductName,
+                    oi.Quantity, 
+                    oi.UnitPrice, 
+                    oi.TotalPrice
+                FROM order_items oi
+                LEFT JOIN products p ON oi.ProductId = p.Id
+                WHERE oi.OrderId = @OrderId";
+
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@OrderId", orderId);
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
             {
-                _connectionString = configuration.GetConnectionString("DefaultConnection")
-                    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+                items.Add(new OrderItemDtos.Response
+                {
+                    Id = reader.GetInt64(reader.GetOrdinal("Id")),
+                    ProductId = reader.GetInt64(reader.GetOrdinal("ProductId")),
+                    ProductName = reader.GetString(reader.GetOrdinal("ProductName")),
+                    Quantity = reader.GetInt32(reader.GetOrdinal("Quantity")),
+                    UnitPrice = reader.GetDecimal(reader.GetOrdinal("UnitPrice")),
+                    TotalPrice = reader.GetDecimal(reader.GetOrdinal("TotalPrice"))
+                });
             }
 
-            public async Task<OrderItemDtos.Response?> Handle(
-                GetOrderItemByIdQuery request,
-                CancellationToken cancellationToken)
-            {
-                var sql = @"
-                    SELECT 
-                        oi.Id,
-                        oi.OrderId,
-                        oi.ProductId,
-                        oi.ProductName,
-                        oi.VariantId,
-                        oi.VariantName,
-                        oi.Sku,
-                        oi.Quantity,
-                        oi.UnitPrice,
-                        oi.TotalPrice,
-                        oi.CreatedAt,
-                        o.UserId,
-                        u.Email AS UserEmail
-                    FROM order_items oi
-                    INNER JOIN orders o ON oi.OrderId = o.Id
-                    LEFT JOIN Auths u ON o.UserId = u.Id
-                    WHERE oi.Id = @Id
-                      AND (@UserId IS NULL OR o.UserId = @UserId)";
-
-                using IDbConnection db = new SqlConnection(_connectionString);
-
-                return await db.QueryFirstOrDefaultAsync<OrderItemDtos.Response>(
-                    new CommandDefinition(sql, new { request.Id, request.UserId }, cancellationToken: cancellationToken)
-                );
-            }
+            return items;
         }
 
-        // =========================================================
-        // 3. QUERY: GET ALL ORDER ITEMS (RAW SQL)
-        // =========================================================
-        public record GetAllOrderItemsQuery(
-            long? UserId = null
-        ) : IRequest<List<OrderItemDtos.Response>>;
-
-        public class GetAllOrderItemsQueryHandler
-            : IRequestHandler<GetAllOrderItemsQuery, List<OrderItemDtos.Response>>
+        public async Task<List<OrderItemDtos.PurchasedProductResponse>> GetPurchasedItemsByUserIdAsync(long userId)
         {
-            private readonly string _connectionString;
+            var items = new List<OrderItemDtos.PurchasedProductResponse>();
 
-            public GetAllOrderItemsQueryHandler(IConfiguration configuration)
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var query = @"
+                        SELECT 
+                            oi.Id, 
+                            oi.ProductId, 
+                            ISNULL(p.Name, 'Unknown Product') AS ProductName,
+                            oi.Quantity, 
+                            oi.UnitPrice, 
+                            oi.TotalPrice,
+                            o.OrderNumber,
+                            o.CreatedAt AS PurchasedAt
+                        FROM order_items oi
+                        INNER JOIN orders o ON oi.OrderId = o.Id
+                        LEFT JOIN products p ON oi.ProductId = p.Id
+                        WHERE o.UserId = @UserId 
+                          AND o.Status IN (@Status1, @Status2, @Status3)";
+
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@UserId", userId);
+            command.Parameters.AddWithValue("@Status1", (int)Enums.OrderStatus.Processing);
+            command.Parameters.AddWithValue("@Status2", (int)Enums.OrderStatus.Shipped);
+            command.Parameters.AddWithValue("@Status3", (int)Enums.OrderStatus.Delivered);
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
             {
-                _connectionString = configuration.GetConnectionString("DefaultConnection")
-                    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+                items.Add(new OrderItemDtos.PurchasedProductResponse
+                {
+                    Id = reader.GetInt64(reader.GetOrdinal("Id")),
+                    ProductId = reader.GetInt64(reader.GetOrdinal("ProductId")),
+                    ProductName = reader.GetString(reader.GetOrdinal("ProductName")),
+                    Quantity = reader.GetInt32(reader.GetOrdinal("Quantity")),
+                    UnitPrice = reader.GetDecimal(reader.GetOrdinal("UnitPrice")),
+                    TotalPrice = reader.GetDecimal(reader.GetOrdinal("TotalPrice")),
+                    OrderNumber = reader.GetString(reader.GetOrdinal("OrderNumber")),
+                    PurchasedAt = reader.GetDateTime(reader.GetOrdinal("PurchasedAt"))
+                });
             }
 
-            public async Task<List<OrderItemDtos.Response>> Handle(
-                GetAllOrderItemsQuery request,
-                CancellationToken cancellationToken)
-            {
-                var sql = @"
-                    SELECT 
-                        oi.Id,
-                        oi.OrderId,
-                        oi.ProductId,
-                        oi.ProductName,
-                        oi.VariantId,
-                        oi.VariantName,
-                        oi.Sku,
-                        oi.Quantity,
-                        oi.UnitPrice,
-                        oi.TotalPrice,
-                        oi.CreatedAt,
-                        o.UserId,
-                        u.Email AS UserEmail
-                    FROM order_items oi
-                    INNER JOIN orders o ON oi.OrderId = o.Id
-                    LEFT JOIN Auths u ON o.UserId = u.Id
-                    WHERE (@UserId IS NULL OR o.UserId = @UserId)
-                    ORDER BY oi.Id DESC";
-
-                using IDbConnection db = new SqlConnection(_connectionString);
-
-                var items = await db.QueryAsync<OrderItemDtos.Response>(
-                    new CommandDefinition(sql, new { request.UserId }, cancellationToken: cancellationToken)
-                );
-
-                return items.ToList();
-            }
+            return items;
         }
     }
 }

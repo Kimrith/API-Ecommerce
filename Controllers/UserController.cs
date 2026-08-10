@@ -25,14 +25,15 @@ namespace API_Ecommerce.Controllers
             _suspendAuthCommand = suspendAuthCommand;
         }
 
-        // --- 1. GET ALL USERS (Optional Filter: GET /api/User?status=Active) ---
+        // --- 1. GET ALL USERS (GET /api/User?pageNumber=1&pageSize=10&status=Active) ---
         [HttpGet]
-        public async Task<IActionResult> GetAllUsers([FromQuery] AuthStatus? status = null)
+        public async Task<IActionResult> GetAllUsers(
+            [FromQuery] PaginationParamsDtos paginationParams,
+            [FromQuery] AuthStatus? status = null)
         {
             try
             {
-                // Pass AuthStatus directly (or status?.ToString() if your query service still expects string)
-                var users = await _authQueries.GetAllUsersAsync(status);
+                var users = await _authQueries.GetAllUsersAsync(paginationParams, status);
                 return Ok(users);
             }
             catch (Exception ex)
@@ -41,13 +42,13 @@ namespace API_Ecommerce.Controllers
             }
         }
 
-        // --- 2. GET ALL SELLERS (GET /api/User/sellers) ---
+        // --- 2. GET ALL SELLERS (GET /api/User/sellers?pageNumber=1&pageSize=10) ---
         [HttpGet("sellers")]
-        public async Task<IActionResult> GetAllSellers()
+        public async Task<IActionResult> GetAllSellers([FromQuery] PaginationParamsDtos paginationParams)
         {
             try
             {
-                var sellers = await _authQueries.GetAllSellersAsync();
+                var sellers = await _authQueries.GetAllSellersAsync(paginationParams);
                 return Ok(sellers);
             }
             catch (Exception ex)

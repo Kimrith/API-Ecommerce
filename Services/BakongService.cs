@@ -9,10 +9,8 @@ namespace API_Ecommerce.Services
 {
     public interface IBakongService
     {
-        // 3-argument overload
         (string? qrString, string? md5) GenerateDynamicQr(string orderReference, decimal amount, string currency = "USD");
 
-        // 7-argument overload for individual sellers
         (string? qrString, string? md5) GenerateDynamicQr(
             string orderReference,
             decimal amount,
@@ -38,13 +36,11 @@ namespace API_Ecommerce.Services
             _httpClient = httpClient;
         }
 
-        // Implementation for 3 arguments (falls back to global settings)
         public (string? qrString, string? md5) GenerateDynamicQr(string orderReference, decimal amount, string currency = "USD")
         {
             return GenerateDynamicQr(orderReference, amount, _settings.BakongId, _settings.MerchantName, _settings.MerchantCity, _settings.AcquiringId, currency);
         }
 
-        // Implementation for 7 arguments (used by sellers)
         public (string? qrString, string? md5) GenerateDynamicQr(
             string orderReference,
             decimal amount,
@@ -57,11 +53,10 @@ namespace API_Ecommerce.Services
             var khqrCurrency = currency.ToUpper() == "KHR" ? KHQRCurrency.KHR : KHQRCurrency.USD;
             long expirationTime = DateTimeOffset.UtcNow.AddMinutes(15).ToUnixTimeMilliseconds();
 
-            var merchantInfo = new MerchantInfo
+            // Use GenerateIndividual instead of GenerateMerchant for correct Tag 29 individual formatting
+            var individualInfo = new IndividualInfo
             {
                 BakongAccountID = bakongId,
-                MerchantID = "123456",
-                AcquiringBank = acquiringId,
                 Currency = khqrCurrency,
                 Amount = (double)amount,
                 MerchantName = merchantName,
@@ -72,7 +67,7 @@ namespace API_Ecommerce.Services
                 ExpirationTimestamp = expirationTime
             };
 
-            var response = BakongKHQR.GenerateMerchant(merchantInfo);
+            var response = BakongKHQR.GenerateIndividual(individualInfo);
 
             if (response.Status.Code != 0)
             {

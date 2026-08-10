@@ -80,14 +80,22 @@ namespace API_Ecommerce.Controllers
         }
 
         /// <summary>
-        /// Get all products created by a specific seller ID.
+        /// Get paginated products created by a specific seller ID with optional filters.
         /// </summary>
         [HttpGet("seller/{sellerId:int}")]
         [AllowAnonymous]
-        public async Task<ActionResult<IEnumerable<ProductResponseDto>>> GetBySellerId(int sellerId)
+        public async Task<ActionResult<PagedResultDto<ProductResponseDto>>> GetBySellerId(
+            int sellerId,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? searchTerm = null,
+            [FromQuery] int? categoryId = null,
+            [FromQuery] string? sortBy = null)
         {
-            var products = await _productQueries.GetBySellerIdAsync(sellerId);
-            return Ok(products);
+            var result = await _productQueries.GetProductsBySellerPagedAsync(
+                sellerId, pageNumber, pageSize, searchTerm, categoryId, sortBy);
+
+            return Ok(result);
         }
 
         // =========================================================================
@@ -229,6 +237,17 @@ namespace API_Ecommerce.Controllers
         {
             var stats = await _productQueries.GetProductStatisticsAsync(sellerId);
             return Ok(stats);
+        }
+
+        /// <summary>
+        /// Get top selling products.
+        /// </summary>
+        [HttpGet("best-sellers")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<TopSellingProductDto>>> GetBestSellers([FromQuery] int limit = 5)
+        {
+            var products = await _productQueries.GetTopSellingProductsAsync(limit);
+            return Ok(products);
         }
 
         // =========================================================================

@@ -25,11 +25,15 @@ namespace API_Ecommerce.Controllers
 
         // --- 1. Get All Categories (Public / Authenticated) ---
         // GET: api/categories?status=Approved
+        // --- 1. Get All Categories (Public / Authenticated) ---
+        // GET: api/categories?pageNumber=1&pageSize=10&status=Approved
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> GetAllCategories([FromQuery] CategoriesStatus? status)
+        public async Task<IActionResult> GetAllCategories(
+            [FromQuery] PaginationParamsDtos paginationParams,
+            [FromQuery] CategoriesStatus? status)
         {
-            var categories = await _queries.GetAllCategoriesAsync(status);
+            var categories = await _queries.GetAllCategoriesAsync(paginationParams, status);
             return Ok(categories);
         }
 
@@ -48,14 +52,17 @@ namespace API_Ecommerce.Controllers
             return Ok(category);
         }
 
-        // --- 3. Get Categories Created by Current User / Seller ---
-        // GET: api/categories/my-categories
-        [HttpGet("my-categories")]
-        [Authorize(Roles = "Seller,Admin")]
-        public async Task<IActionResult> GetMyCategories()
+        // --- 3. Get Categories Created by a Specific Seller (Paginated) ---
+        // GET: api/categories/seller/5?pageNumber=1&pageSize=10&status=Approved&searchTerm=electronics
+        [HttpGet("seller/{id:int}")]
+        [Authorize(Roles = "Admin,Seller")]
+        public async Task<IActionResult> GetCategoriesBySellerId(
+            int id,
+            [FromQuery] PaginationParamsDtos paginationParams,
+            [FromQuery] CategoriesStatus? status,
+            [FromQuery] string? searchTerm)
         {
-            var currentUserId = GetCurrentUserId();
-            var categories = await _queries.GetByUserIdAsync(currentUserId);
+            var categories = await _queries.GetCategoriesByUserIdPagedAsync(id, paginationParams, status, searchTerm);
             return Ok(categories);
         }
 
@@ -121,9 +128,9 @@ namespace API_Ecommerce.Controllers
         // GET: api/categories/statistics
         [HttpGet("statistics")]
         [AllowAnonymous]
-        public async Task<IActionResult> GetCategoriesStatistics()
+        public async Task<IActionResult> GetCategoriesStatistics([FromQuery] int? sellerId)
         {
-            var statistics = await _queries.GetCategoriesStatisticsAsync();
+            var statistics = await _queries.GetCategoriesStatisticsAsync(sellerId);
             return Ok(statistics);
         }
 
