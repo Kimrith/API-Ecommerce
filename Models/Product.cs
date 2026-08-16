@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using API_Ecommerce.Enums;
 
@@ -30,6 +30,12 @@ namespace API_Ecommerce.Models
         public DateTime? DiscountEndDate { get; set; }
 
         // REMOVED: StockQuantity is now managed strictly via the Inventory model.
+
+        [StringLength(100)]
+        public string? Size { get; set; }
+
+        [StringLength(100)]
+        public string? Color { get; set; }
 
         [StringLength(500)]
         public string ImageUrl { get; set; } = string.Empty;

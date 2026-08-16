@@ -1,4 +1,4 @@
-﻿using API_Ecommerce.Data;
+using API_Ecommerce.Data;
 using API_Ecommerce.Enums;
 using API_Ecommerce.Models;
 using API_Ecommerce.Services;
@@ -48,42 +48,45 @@ namespace API_Ecommerce.Queries
                 };
             }
 
-            // 4. Determine Bakong configuration based on the first product's seller
+            // 4. Determine Bakong configuration: if products are from different sellers, use the default Admin QR
             string? qrString = null;
             string? md5 = null;
 
-            var firstItem = orderItems.FirstOrDefault();
-            if (firstItem?.Product?.Seller != null)
-            {
-                var seller = firstItem.Product.Seller;
-                if (seller.Role == Roles.Seller)
-                {
-                    var config = await _context.SellerBakongConfigs
-                        .FirstOrDefaultAsync(c => c.SellerId == (int)seller.Id);
+            var uniqueSellerIds = orderItems
+                .Where(oi => oi.Product != null)
+                .Select(oi => oi.Product.SellerId)
+                .Distinct()
+                .ToList();
 
-                    if (config != null && !string.IsNullOrEmpty(config.BakongId))
-                    {
-                        (qrString, md5) = _bakongService.GenerateDynamicQr(
-                            order.OrderNumber,
-                            order.TotalAmount,
-                            config.BakongId,
-                            config.MerchantName,
-                            config.MerchantCity,
-                            config.AcquiringId,
-                            order.Currency
-                        );
-                    }
-                    else
-                    {
-                        (qrString, md5) = _bakongService.GenerateDynamicQr(order.OrderNumber, order.TotalAmount, order.Currency);
-                    }
-                }
-                else
+            if (uniqueSellerIds.Count == 1)
+            {
+                var firstItem = orderItems.FirstOrDefault();
+                if (firstItem?.Product?.Seller != null)
                 {
-                    (qrString, md5) = _bakongService.GenerateDynamicQr(order.OrderNumber, order.TotalAmount, order.Currency);
+                    var seller = firstItem.Product.Seller;
+                    if (seller.Role == Roles.Seller)
+                    {
+                        var config = await _context.SellerBakongConfigs
+                            .FirstOrDefaultAsync(c => c.SellerId == (int)seller.Id);
+
+                        if (config != null && !string.IsNullOrEmpty(config.BakongId))
+                        {
+                            (qrString, md5) = _bakongService.GenerateDynamicQr(
+                                order.OrderNumber,
+                                order.TotalAmount,
+                                config.BakongId,
+                                config.MerchantName,
+                                config.MerchantCity,
+                                config.AcquiringId,
+                                order.Currency
+                            );
+                        }
+                    }
                 }
             }
-            else
+
+            // Fallback: If multiple sellers, or no seller config found, use default Admin QR
+            if (string.IsNullOrEmpty(qrString))
             {
                 (qrString, md5) = _bakongService.GenerateDynamicQr(order.OrderNumber, order.TotalAmount, order.Currency);
             }

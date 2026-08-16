@@ -36,6 +36,8 @@ namespace API_Ecommerce.DTOs
         public int StockQuantity { get; set; } // Can map from Inventory.Quantity if no variants
         public int AvailableQuantity { get; set; } // Inventory.AvailableQuantity
 
+        public string? Size { get; set; }
+        public string? Color { get; set; }
         public string ImageUrl { get; set; } = string.Empty;
         public ProductStatus Status { get; set; }
         public DateTime? PublishAt { get; set; }
@@ -79,6 +81,12 @@ namespace API_Ecommerce.DTOs
 
         [Required(ErrorMessage = "Category ID is required.")]
         public long CategoryId { get; set; }
+
+        [StringLength(100, ErrorMessage = "Size cannot exceed 100 characters.")]
+        public string? Size { get; set; }
+
+        [StringLength(100, ErrorMessage = "Color cannot exceed 100 characters.")]
+        public string? Color { get; set; }
 
         public DateTime? PublishAt { get; set; }
         public IFormFile? Image { get; set; }
@@ -127,6 +135,12 @@ namespace API_Ecommerce.DTOs
         public int InitialStock { get; set; } = 0;
 
         public ProductStatus Status { get; set; }
+        [StringLength(100, ErrorMessage = "Size cannot exceed 100 characters.")]
+        public string? Size { get; set; }
+
+        [StringLength(100, ErrorMessage = "Color cannot exceed 100 characters.")]
+        public string? Color { get; set; }
+
         public DateTime? PublishAt { get; set; }
         public IFormFile? Image { get; set; }
 

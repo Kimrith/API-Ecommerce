@@ -1,7 +1,9 @@
 ﻿using API_Ecommerce.Data;
 using API_Ecommerce.DTOs;
 using API_Ecommerce.Models;
+using API_Ecommerce.Services;
 using Microsoft.EntityFrameworkCore;
+using QRCoder;
 
 namespace API_Ecommerce.Services
 {
@@ -14,10 +16,12 @@ namespace API_Ecommerce.Services
     public class SellerBakongService : ISellerBakongService
     {
         private readonly AppDbContext _context;
+        private readonly IBakongService _bakongService;
 
-        public SellerBakongService(AppDbContext context)
+        public SellerBakongService(AppDbContext context, IBakongService bakongService)
         {
             _context = context;
+            _bakongService = bakongService;
         }
 
         public async Task<SellerBakongConfigsDto?> GetConfigBySellerIdAsync(int sellerId)
@@ -26,6 +30,34 @@ namespace API_Ecommerce.Services
                 .FirstOrDefaultAsync(s => s.SellerId == sellerId);
 
             if (config == null) return null;
+
+            string? qrString = null;
+            string? qrImageBase64 = null;
+
+            // Generate a preview KHQR string using the seller's config credentials if BakongId is available
+            if (!string.IsNullOrEmpty(config.BakongId))
+            {
+                var (qr, md5) = _bakongService.GenerateDynamicQr(
+                    "PREVIEW-CONFIG", // dummy bill reference for profile setup preview
+                    1.00m,            // nominal preview amount
+                    config.BakongId,
+                    config.MerchantName,
+                    config.MerchantCity,
+                    config.AcquiringId,
+                    "USD"
+                );
+
+                qrString = qr;
+
+                if (!string.IsNullOrEmpty(qr))
+                {
+                    using var qrGenerator = new QRCodeGenerator();
+                    using var qrCodeData = qrGenerator.CreateQrCode(qr, QRCodeGenerator.ECCLevel.Q);
+                    using var qrCode = new PngByteQRCode(qrCodeData);
+                    byte[] qrCodeBytes = qrCode.GetGraphic(20);
+                    qrImageBase64 = $"data:image/png;base64,{Convert.ToBase64String(qrCodeBytes)}";
+                }
+            }
 
             return new SellerBakongConfigsDto
             {
@@ -36,7 +68,9 @@ namespace API_Ecommerce.Services
                 MerchantCity = config.MerchantCity,
                 AcquiringId = config.AcquiringId,
                 ApiBaseUrl = config.ApiBaseUrl,
-                Token = config.Token
+                Token = config.Token,
+                QrString = qrString,
+                QrImageBase64 = qrImageBase64
             };
         }
 

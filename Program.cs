@@ -74,6 +74,9 @@ builder.Services.AddScoped<GenerateOrderQrQuery>();
 // Banner
 builder.Services.AddScoped<BannerQueries>();
 
+// Review 
+builder.Services.AddScoped<ReviewQueries>();
+
 // Token & Infrastructure Services
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.Configure<BakongSettings>(builder.Configuration.GetSection("Bakong"));

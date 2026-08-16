@@ -105,6 +105,8 @@ namespace API_Ecommerce.Queries
                     p.DiscountEndDate,
                     COALESCE(i.Quantity, 0) AS StockQuantity,
                     COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
+                    p.Size,
+                    p.Color,
                     p.ImageUrl,
                     p.Status,
                     p.PublishAt,
@@ -204,6 +206,8 @@ namespace API_Ecommerce.Queries
                     p.DiscountEndDate,
                     COALESCE(i.Quantity, 0) AS StockQuantity,
                     COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
+                    p.Size,
+                    p.Color,
                     p.ImageUrl,
                     p.Status,
                     p.PublishAt,
@@ -260,6 +264,8 @@ namespace API_Ecommerce.Queries
                     p.DiscountEndDate,
                     COALESCE(i.Quantity, 0) AS StockQuantity,
                     COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
+                    p.Size,
+                    p.Color,
                     p.ImageUrl,
                     p.Status,
                     p.PublishAt,
@@ -274,10 +280,37 @@ namespace API_Ecommerce.Queries
                 LEFT JOIN categories c ON p.CategoryId = c.Id
                 LEFT JOIN Auths u ON p.SellerId = u.Id
                 LEFT JOIN inventory i ON p.Id = i.ProductId AND i.VariantId IS NULL
-                WHERE p.Id = @Id;";
+                WHERE p.Id = @Id;
+
+                SELECT 
+                    pv.Id,
+                    pv.ProductId,
+                    pv.Title,
+                    pv.Sku,
+                    COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
+                    pv.ImageUrl,
+                    pv.Size,
+                    pv.Color,
+                    pv.Price,
+                    pv.DiscountPrice,
+                    pv.InitialStock,
+                    pv.IsActive,
+                    pv.CreatedAt,
+                    pv.UpdatedAt
+                FROM product_variants pv
+                LEFT JOIN inventory i ON pv.Id = i.VariantId
+                WHERE pv.ProductId = @Id AND pv.IsActive = 1
+                ORDER BY pv.CreatedAt ASC;";
 
             var connection = await GetOpenConnectionAsync();
-            return await connection.QueryFirstOrDefaultAsync<ProductResponseDto>(sql, new { Id = id });
+            using var multi = await connection.QueryMultipleAsync(sql, new { Id = id });
+            var product = await multi.ReadFirstOrDefaultAsync<ProductResponseDto>();
+            if (product != null)
+            {
+                var variants = (await multi.ReadAsync<ProductVariantResponseDto>()).ToList();
+                product.Variants = variants;
+            }
+            return product;
         }
 
         /// <summary>
@@ -286,6 +319,8 @@ namespace API_Ecommerce.Queries
         public async Task<ProductResponseDto?> GetBySlugAsync(string slug)
         {
             const string sql = @"
+                DECLARE @ProductId INT;
+
                 SELECT 
                     p.Id,
                     p.Name,
@@ -297,6 +332,8 @@ namespace API_Ecommerce.Queries
                     p.DiscountEndDate,
                     COALESCE(i.Quantity, 0) AS StockQuantity,
                     COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
+                    p.Size,
+                    p.Color,
                     p.ImageUrl,
                     p.Status,
                     p.PublishAt,
@@ -311,10 +348,39 @@ namespace API_Ecommerce.Queries
                 LEFT JOIN categories c ON p.CategoryId = c.Id
                 LEFT JOIN Auths u ON p.SellerId = u.Id
                 LEFT JOIN inventory i ON p.Id = i.ProductId AND i.VariantId IS NULL
-                WHERE LOWER(p.Slug) = LOWER(@Slug);";
+                WHERE LOWER(p.Slug) = LOWER(@Slug);
+
+                SELECT @ProductId = Id FROM products WHERE LOWER(Slug) = LOWER(@Slug);
+
+                SELECT 
+                    pv.Id,
+                    pv.ProductId,
+                    pv.Title,
+                    pv.Sku,
+                    COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
+                    pv.ImageUrl,
+                    pv.Size,
+                    pv.Color,
+                    pv.Price,
+                    pv.DiscountPrice,
+                    pv.InitialStock,
+                    pv.IsActive,
+                    pv.CreatedAt,
+                    pv.UpdatedAt
+                FROM product_variants pv
+                LEFT JOIN inventory i ON pv.Id = i.VariantId
+                WHERE pv.ProductId = @ProductId AND pv.IsActive = 1
+                ORDER BY pv.CreatedAt ASC;";
 
             var connection = await GetOpenConnectionAsync();
-            return await connection.QueryFirstOrDefaultAsync<ProductResponseDto>(sql, new { Slug = slug });
+            using var multi = await connection.QueryMultipleAsync(sql, new { Slug = slug });
+            var product = await multi.ReadFirstOrDefaultAsync<ProductResponseDto>();
+            if (product != null)
+            {
+                var variants = (await multi.ReadAsync<ProductVariantResponseDto>()).ToList();
+                product.Variants = variants;
+            }
+            return product;
         }
 
         /// <summary>
@@ -334,6 +400,8 @@ namespace API_Ecommerce.Queries
                     p.DiscountEndDate,
                     COALESCE(i.Quantity, 0) AS StockQuantity,
                     COALESCE(i.Quantity - i.ReservedQuantity, 0) AS AvailableQuantity,
+                    p.Size,
+                    p.Color,
                     p.ImageUrl,
                     p.Status,
                     p.PublishAt,
