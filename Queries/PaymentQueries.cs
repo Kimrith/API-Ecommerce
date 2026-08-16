@@ -1,4 +1,4 @@
-﻿using API_Ecommerce.Data;
+using API_Ecommerce.Data;
 using API_Ecommerce.DTOs;
 using API_Ecommerce.Enums;
 using Dapper;
@@ -109,7 +109,10 @@ namespace API_Ecommerce.Queries
                     COALESCE(u.FullName, 'Unknown') AS CustomerName,
                     COALESCE(u.Email, 'Unknown') AS CustomerEmail,
                     p.PaymentMethod,
-                    p.Amount,
+                    COALESCE((SELECT SUM(oi_sub.TotalPrice) 
+                              FROM order_items oi_sub 
+                              INNER JOIN Products pr_sub ON oi_sub.ProductId = pr_sub.Id 
+                              WHERE oi_sub.OrderId = o.Id AND pr_sub.SellerId = @SellerId), 0) AS Amount,
                     p.Currency,
                     p.Status,
                     CAST(p.Status AS NVARCHAR(50)) AS StatusString,

@@ -93,6 +93,8 @@ namespace API_Ecommerce.Commands
             product.DiscountStartDate = dto.DiscountStartDate;
             product.DiscountEndDate = dto.DiscountEndDate;
             product.Status = dto.Status;
+            product.Size = dto.Size;
+            product.Color = dto.Color;
 
             if (product.Inventory != null)
             {
@@ -143,6 +145,8 @@ namespace API_Ecommerce.Commands
                 DiscountEndDate = product.DiscountEndDate,
                 StockQuantity = product.Inventory?.Quantity ?? 0,
                 AvailableQuantity = product.Inventory?.AvailableQuantity ?? 0,
+                Size = product.Size,
+                Color = product.Color,
                 ImageUrl = product.ImageUrl,
                 Status = product.Status,
                 PublishAt = product.PublishAt,

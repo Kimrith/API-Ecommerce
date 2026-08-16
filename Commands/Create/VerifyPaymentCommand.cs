@@ -1,4 +1,4 @@
-﻿using API_Ecommerce.Data;
+using API_Ecommerce.Data;
 using API_Ecommerce.Enums;
 using API_Ecommerce.Services;
 using Microsoft.EntityFrameworkCore;
