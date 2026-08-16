@@ -90,10 +90,11 @@ namespace API_Ecommerce.Controllers
             [FromQuery] int pageSize = 10,
             [FromQuery] string? searchTerm = null,
             [FromQuery] int? categoryId = null,
+            [FromQuery] ProductStatus? status = null,
             [FromQuery] string? sortBy = null)
         {
             var result = await _productQueries.GetProductsBySellerPagedAsync(
-                sellerId, pageNumber, pageSize, searchTerm, categoryId, sortBy);
+                sellerId, pageNumber, pageSize, searchTerm, categoryId, status, sortBy);
 
             return Ok(result);
         }

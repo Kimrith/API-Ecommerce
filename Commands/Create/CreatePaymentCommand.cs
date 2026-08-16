@@ -98,55 +98,7 @@ namespace API_Ecommerce.Commands.Create
                 await _context.SaveChangesAsync();
 
                 string orderReference = order.OrderNumber;
-                
-                // Determine if all products belong to the same seller
-                var productsWithSellers = new List<Product>();
-                foreach (var cartItem in command.Items)
-                {
-                    var product = await _context.Products
-                        .Include(p => p.Seller)
-                        .FirstOrDefaultAsync(p => p.Id == cartItem.ProductId);
-                    if (product != null)
-                    {
-                        productsWithSellers.Add(product);
-                    }
-                }
-
-                var uniqueSellerIds = productsWithSellers
-                    .Select(p => p.SellerId)
-                    .Distinct()
-                    .ToList();
-
-                string? qrString = null;
-                string? md5 = null;
-
-                if (uniqueSellerIds.Count == 1)
-                {
-                    var singleProduct = productsWithSellers.First();
-                    if (singleProduct.Seller != null && singleProduct.Seller.Role == Roles.Seller)
-                    {
-                        var config = await _context.SellerBakongConfigs
-                            .FirstOrDefaultAsync(c => c.SellerId == (int)singleProduct.Seller.Id);
-
-                        if (config != null && !string.IsNullOrEmpty(config.BakongId))
-                        {
-                            (qrString, md5) = _bakongService.GenerateDynamicQr(
-                                orderReference,
-                                order.TotalAmount,
-                                config.BakongId,
-                                config.MerchantName,
-                                config.MerchantCity,
-                                config.AcquiringId,
-                                "USD"
-                            );
-                        }
-                    }
-                }
-
-                if (string.IsNullOrEmpty(qrString))
-                {
-                    (qrString, md5) = _bakongService.GenerateDynamicQr(orderReference, order.TotalAmount, "USD");
-                }
+                var (qrString, md5) = _bakongService.GenerateDynamicQr(orderReference, order.TotalAmount, "USD");
 
                 if (string.IsNullOrEmpty(qrString) || string.IsNullOrEmpty(md5))
                 {

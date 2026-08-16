@@ -51,6 +51,7 @@ namespace API_Ecommerce.Commands.Create
 
             decimal subtotal = 0;
 
+            // Calculate subtotal using active discount checks
             foreach (var item in cartItems)
             {
                 var product = await _context.Products.FindAsync(item.ProductId);
@@ -64,9 +65,12 @@ namespace API_Ecommerce.Commands.Create
                     throw new InvalidOperationException($"Product '{product.Name}' is not available for purchase (Status: {product.Status}).");
                 }
 
-                decimal unitPrice = product.Price;
-                decimal itemSubtotal = unitPrice * item.Quantity;
-                subtotal += itemSubtotal;
+                bool hasActiveDiscount = product.DiscountPrice.HasValue && product.DiscountPrice.Value > 0 &&
+                    (!product.DiscountStartDate.HasValue || DateTime.UtcNow >= product.DiscountStartDate.Value) &&
+                    (!product.DiscountEndDate.HasValue || DateTime.UtcNow <= product.DiscountEndDate.Value);
+
+                decimal unitPrice = hasActiveDiscount ? product.DiscountPrice.Value : product.Price;
+                subtotal += unitPrice * item.Quantity;
             }
 
             // 5. Validate and Calculate Coupon Discount if provided
@@ -81,20 +85,17 @@ namespace API_Ecommerce.Commands.Create
                     throw new KeyNotFoundException($"Coupon code '{dto.CouponCode}' is invalid or inactive.");
                 }
 
-                // Check expiration dates
                 if ((coupon.StartsAt.HasValue && DateTime.UtcNow < coupon.StartsAt.Value) ||
                     (coupon.ExpiresAt.HasValue && DateTime.UtcNow > coupon.ExpiresAt.Value))
                 {
                     throw new InvalidOperationException($"Coupon code '{dto.CouponCode}' has expired or is not yet active.");
                 }
 
-                // Check minimum amount requirement
                 if (coupon.MinimumAmount.HasValue && subtotal < coupon.MinimumAmount.Value)
                 {
                     throw new InvalidOperationException($"Subtotal must be at least {coupon.MinimumAmount.Value} to use this coupon.");
                 }
 
-                // Calculate discount based on DiscountType (Assuming CouponType.Percentage = 1 or similar enum mapping)
                 if (coupon.DiscountType == CouponType.Percentage)
                 {
                     discountAmount = subtotal * (coupon.DiscountValue / 100);
@@ -103,16 +104,15 @@ namespace API_Ecommerce.Commands.Create
                         discountAmount = coupon.MaximumDiscountAmount.Value;
                     }
                 }
-                else // Fixed amount discount
+                else
                 {
                     discountAmount = coupon.DiscountValue;
                     if (discountAmount > subtotal)
                     {
-                        discountAmount = subtotal; // Prevent negative totals
+                        discountAmount = subtotal;
                     }
                 }
 
-                // Optional: Track coupon usage increment
                 coupon.TimesUsed++;
                 _context.Coupons.Update(coupon);
             }
@@ -147,11 +147,16 @@ namespace API_Ecommerce.Commands.Create
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
 
-            // 9a. Save Order Items to Database
+            // 9a. Save Order Items to Database with correct discount pricing applied
             foreach (var item in cartItems)
             {
                 var product = await _context.Products.FindAsync(item.ProductId);
-                decimal unitPrice = product != null ? product.Price : 0;
+
+                bool hasActiveDiscount = product != null && product.DiscountPrice.HasValue && product.DiscountPrice.Value > 0 &&
+                    (!product.DiscountStartDate.HasValue || DateTime.UtcNow >= product.DiscountStartDate.Value) &&
+                    (!product.DiscountEndDate.HasValue || DateTime.UtcNow <= product.DiscountEndDate.Value);
+
+                decimal unitPrice = product != null ? (hasActiveDiscount ? product.DiscountPrice.Value : product.Price) : 0;
 
                 var orderItem = new OrderItem
                 {
