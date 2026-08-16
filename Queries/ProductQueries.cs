@@ -155,10 +155,11 @@ namespace API_Ecommerce.Queries
             int pageSize = 10,
             string? searchTerm = null,
             int? categoryId = null,
+            ProductStatus? status = null,
             string? sortBy = null)
         {
             pageNumber = pageNumber < 1 ? 1 : pageNumber;
-            pageSize = pageSize < 1 ? 10 : (pageSize > 100 ? 100 : pageSize);
+            pageSize = pageSize < 1 ? 10 : (pageSize > 1000 ? 1000 : pageSize);
             int offset = (pageNumber - 1) * pageSize;
 
             var whereClauses = new List<string> { "p.SellerId = @SellerId" };
@@ -177,6 +178,14 @@ namespace API_Ecommerce.Queries
             {
                 whereClauses.Add("p.CategoryId = @CategoryId");
                 dynamicParameters.Add("CategoryId", categoryId.Value);
+            }
+
+            // 3. Status Filter (Supports integer or string enum storage)
+            if (status.HasValue)
+            {
+                whereClauses.Add("(p.Status = CAST(@StatusValue AS NVARCHAR(50)) OR LOWER(p.Status) = LOWER(@StatusName))");
+                dynamicParameters.Add("StatusValue", (int)status.Value);
+                dynamicParameters.Add("StatusName", status.Value.ToString());
             }
 
             string whereSql = " WHERE " + string.Join(" AND ", whereClauses);
