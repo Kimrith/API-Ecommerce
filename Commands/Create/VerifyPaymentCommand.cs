@@ -37,11 +37,27 @@ namespace API_Ecommerce.Commands.Update
                 return (true, "PAID", "Payment is already completed.");
             }
 
-            bool isPaid = await _bakongService.VerifyTransactionAsync(payment.Md5);
+            // Find seller's token if this payment was routed to a specific seller
+            string? sellerToken = null;
+            var firstOrderItem = await _context.OrderItems
+                .Include(oi => oi.Product)
+                .FirstOrDefaultAsync(oi => oi.OrderId == command.OrderId);
+
+            if (firstOrderItem?.Product?.SellerId != null)
+            {
+                var sellerConfig = await _context.SellerBakongConfigs
+                    .FirstOrDefaultAsync(s => s.SellerId == firstOrderItem.Product.SellerId);
+                sellerToken = sellerConfig?.Token;
+            }
+
+            var (isPaid, rawResponse) = await _bakongService.VerifyTransactionAsync(payment.Md5, sellerToken);
+
+            payment.RawResponse = rawResponse;
 
             if (isPaid)
             {
                 payment.Status = PaymentStatus.Completed;
+                payment.PaidAt = DateTime.UtcNow;
 
                 if (payment.Order != null)
                 {
@@ -73,6 +89,8 @@ namespace API_Ecommerce.Commands.Update
 
                 return (true, "PAID", "Payment verified successfully! Order updated and stock decreased.");
             }
+
+            await _context.SaveChangesAsync(); // Save raw response for diagnostics
 
             return (true, "PENDING", "Transaction has not been completed or found yet.");
         }

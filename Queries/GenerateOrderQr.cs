@@ -52,26 +52,44 @@ namespace API_Ecommerce.Queries
             string? qrString = null;
             string? md5 = null;
 
-            var firstItem = orderItems.FirstOrDefault();
-            if (firstItem?.Product?.Seller != null)
-            {
-                var seller = firstItem.Product.Seller;
-                if (seller.Role == Roles.Seller)
-                {
-                    var config = await _context.SellerBakongConfigs
-                        .FirstOrDefaultAsync(c => c.SellerId == (int)seller.Id);
+            var sellerIds = orderItems
+                .Select(oi => oi.Product?.SellerId)
+                .Where(id => id != null)
+                .Distinct()
+                .ToList();
 
-                    if (config != null && !string.IsNullOrEmpty(config.BakongId))
+            if (sellerIds.Count > 1)
+            {
+                // Products from different shops: use QR default from Admin
+                (qrString, md5) = _bakongService.GenerateDynamicQr(order.OrderNumber, order.TotalAmount, order.Currency);
+            }
+            else
+            {
+                var firstItem = orderItems.FirstOrDefault();
+                if (firstItem?.Product?.Seller != null)
+                {
+                    var seller = firstItem.Product.Seller;
+                    if (seller.Role == Roles.Seller)
                     {
-                        (qrString, md5) = _bakongService.GenerateDynamicQr(
-                            order.OrderNumber,
-                            order.TotalAmount,
-                            config.BakongId,
-                            config.MerchantName,
-                            config.MerchantCity,
-                            config.AcquiringId,
-                            order.Currency
-                        );
+                        var config = await _context.SellerBakongConfigs
+                            .FirstOrDefaultAsync(c => c.SellerId == (int)seller.Id);
+
+                        if (config != null && !string.IsNullOrEmpty(config.BakongId))
+                        {
+                            (qrString, md5) = _bakongService.GenerateDynamicQr(
+                                order.OrderNumber,
+                                order.TotalAmount,
+                                config.BakongId,
+                                config.MerchantName,
+                                config.MerchantCity,
+                                config.AcquiringId,
+                                order.Currency
+                            );
+                        }
+                        else
+                        {
+                            (qrString, md5) = _bakongService.GenerateDynamicQr(order.OrderNumber, order.TotalAmount, order.Currency);
+                        }
                     }
                     else
                     {
@@ -82,10 +100,6 @@ namespace API_Ecommerce.Queries
                 {
                     (qrString, md5) = _bakongService.GenerateDynamicQr(order.OrderNumber, order.TotalAmount, order.Currency);
                 }
-            }
-            else
-            {
-                (qrString, md5) = _bakongService.GenerateDynamicQr(order.OrderNumber, order.TotalAmount, order.Currency);
             }
 
             // 5. Save or update the payment record in the database

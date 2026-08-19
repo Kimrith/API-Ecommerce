@@ -29,6 +29,9 @@ namespace API_Ecommerce.Models
 
         public Roles Role { get; set; } = Roles.Seller;
 
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 

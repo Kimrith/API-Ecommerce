@@ -297,7 +297,11 @@ namespace API_Ecommerce.Queries
             if (sellerId.HasValue)
             {
                 parameters.Add("SellerId", sellerId.Value);
-                statsSql = @"
+
+                var hasBakongConfig = await _context.SellerBakongConfigs
+                    .AnyAsync(sbc => sbc.SellerId == (int)sellerId.Value && sbc.BakongId != null && sbc.BakongId != "");
+
+                statsSql = $@"
                     SELECT 
                         COUNT(DISTINCT CASE WHEN o.Status <> 0 THEN o.Id END) AS totalOrders,
                         SUM(CASE WHEN o.Status <> 0 THEN oi.TotalPrice ELSE 0 END) AS totalRevenue,
@@ -306,10 +310,17 @@ namespace API_Ecommerce.Queries
                         COUNT(DISTINCT CASE WHEN o.Status = 2 THEN o.Id END) AS shippedCount,
                         COUNT(DISTINCT CASE WHEN o.Status = 3 OR o.Status = 5 THEN o.Id END) AS deliveredCount,
                         COUNT(DISTINCT CASE WHEN o.Status = 3 THEN o.Id END) AS completedCount,
-                        COUNT(DISTINCT CASE WHEN o.Status = 4 THEN o.Id END) AS cancelledCount
+                        COUNT(DISTINCT CASE WHEN o.Status = 4 THEN o.Id END) AS cancelledCount,
+                        SUM(CASE WHEN o.Status <> 0 AND {(hasBakongConfig ? "osc.SellerCount > 1" : "1 = 1")} THEN oi.TotalPrice ELSE 0 END) AS availableBalance
                     FROM Orders o
                     INNER JOIN order_items oi ON o.Id = oi.OrderId
                     INNER JOIN products p ON oi.ProductId = p.Id
+                    LEFT JOIN (
+                        SELECT oi2.OrderId, COUNT(DISTINCT p2.SellerId) AS SellerCount
+                        FROM order_items oi2
+                        INNER JOIN products p2 ON oi2.ProductId = p2.Id
+                        GROUP BY oi2.OrderId
+                    ) osc ON o.Id = osc.OrderId
                     WHERE p.SellerId = @SellerId;";
 
                 monthlySql = @"
@@ -333,7 +344,8 @@ namespace API_Ecommerce.Queries
                         SUM(CASE WHEN Status = 2 THEN 1 ELSE 0 END) AS shippedCount,
                         SUM(CASE WHEN Status = 3 OR Status = 5 THEN 1 ELSE 0 END) AS deliveredCount,
                         SUM(CASE WHEN Status = 3 THEN 1 ELSE 0 END) AS completedCount,
-                        SUM(CASE WHEN Status = 4 THEN 1 ELSE 0 END) AS cancelledCount
+                        SUM(CASE WHEN Status = 4 THEN 1 ELSE 0 END) AS cancelledCount,
+                        SUM(CASE WHEN Status <> 0 THEN TotalAmount ELSE 0 END) AS availableBalance
                     FROM Orders;";
 
                 monthlySql = @"
@@ -375,6 +387,7 @@ namespace API_Ecommerce.Queries
                 deliveredCount = (stats?.deliveredCount != null) ? (int)stats.deliveredCount : 0,
                 completedCount = (stats?.completedCount != null) ? (int)stats.completedCount : 0,
                 cancelledCount = (stats?.cancelledCount != null) ? (int)stats.cancelledCount : 0,
+                availableBalance = (stats?.availableBalance != null) ? (decimal)stats.availableBalance : 0m,
                 analytics = new
                 {
                     labels = monthlyLabels,
