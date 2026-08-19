@@ -1,4 +1,4 @@
-﻿using API_Ecommerce.Commands;
+using API_Ecommerce.Commands;
 using API_Ecommerce.DTOs;
 using API_Ecommerce.Queries;
 using MediatR;
@@ -45,12 +45,27 @@ namespace API_Ecommerce.Controllers
         [HttpPost]
         public async Task<ActionResult<FavoriteResponseDto>> AddFavorite([FromBody] CreateFavoriteDto dto)
         {
-            long userId = GetCurrentUserId(); // Extract from token or use fallback
+            try
+            {
+                long userId = GetCurrentUserId(); // Extract from token or use fallback
 
-            var command = new CreateFavoriteCommand(userId, dto.ProductId);
-            var result = await _mediator.Send(command);
+                var command = new CreateFavoriteCommand(userId, dto.ProductId);
+                var result = await _mediator.Send(command);
 
-            return CreatedAtAction(nameof(GetUserFavorites), new { userId = userId }, result);
+                return CreatedAtAction(nameof(GetUserFavorites), new { userId = userId }, result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while adding to favorites.", details = ex.Message });
+            }
         }
 
         // DELETE: api/favorite/product/{productId}

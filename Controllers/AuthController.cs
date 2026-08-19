@@ -85,5 +85,24 @@ namespace API_Ecommerce.Controllers
                 return StatusCode(500, new { message = "An error occurred during login.", details = ex.Message });
             }
         }
+
+        // --- 3. REFRESH TOKEN ---
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto dto)
+        {
+            try
+            {
+                var response = await _authCommand.ExecuteRefreshTokenAsync(dto.RefreshToken);
+                return Ok(response);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred during token refresh.", details = ex.Message });
+            }
+        }
     }
 }

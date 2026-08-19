@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using API_Ecommerce.Models;
@@ -21,7 +22,7 @@ namespace API_Ecommerce.Services
             string currency = "USD"
         );
 
-        Task<bool> VerifyTransactionAsync(string md5);
+        Task<(bool IsPaid, string? RawResponse)> VerifyTransactionAsync(string md5, string? customToken = null);
     }
 
     public class BakongService : IBakongService
@@ -53,7 +54,6 @@ namespace API_Ecommerce.Services
             var khqrCurrency = currency.ToUpper() == "KHR" ? KHQRCurrency.KHR : KHQRCurrency.USD;
             long expirationTime = DateTimeOffset.UtcNow.AddMinutes(15).ToUnixTimeMilliseconds();
 
-            // Use GenerateIndividual instead of GenerateMerchant for correct Tag 29 individual formatting
             var individualInfo = new IndividualInfo
             {
                 BakongAccountID = bakongId,
@@ -82,25 +82,36 @@ namespace API_Ecommerce.Services
             return (null, null);
         }
 
-        public async Task<bool> VerifyTransactionAsync(string md5)
+        public async Task<(bool IsPaid, string? RawResponse)> VerifyTransactionAsync(string md5, string? customToken = null)
         {
             try
             {
-                _httpClient.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _settings.Token);
+                var tokenToUse = !string.IsNullOrWhiteSpace(customToken) ? customToken : _settings.Token;
 
-                var payload = new { md5 = md5 };
-                var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}/v1/check_transaction_by_md5", payload);
+                using var request = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/v1/check_transaction_by_md5");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokenToUse);
+                request.Content = JsonContent.Create(new { md5 = md5 });
 
-                if (!response.IsSuccessStatusCode) return false;
+                var response = await _httpClient.SendAsync(request);
+                var rawBody = await response.Content.ReadAsStringAsync();
 
-                var result = await response.Content.ReadFromJsonAsync<BakongCheckResponse>();
+                // 🔍 PRINT BAKONG RESPONSE DIRECTLY TO CONSOLE FOR DEBUGGING
+                Console.WriteLine($"[BAKONG API RESPONSE] MD5: {md5} | Status: {response.StatusCode} | Body: {rawBody}");
 
-                return result != null && result.ResponseCode == 0 && result.Data != null;
+                if (!response.IsSuccessStatusCode)
+                {
+                    return (false, rawBody);
+                }
+
+                var result = System.Text.Json.JsonSerializer.Deserialize<BakongCheckResponse>(rawBody);
+                bool isPaid = result != null && result.ResponseCode == 0 && result.Data != null;
+
+                return (isPaid, rawBody);
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                Console.WriteLine($"[BAKONG EXCEPTION]: {ex.Message}");
+                return (false, ex.Message);
             }
         }
     }

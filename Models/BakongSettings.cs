@@ -1,4 +1,4 @@
-﻿namespace API_Ecommerce.Models
+namespace API_Ecommerce.Models
 {
     public class BakongSettings
     {

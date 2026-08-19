@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization; // Added for JsonStringEnumConverter
 using API_Ecommerce.Enums;
 using Microsoft.AspNetCore.Http;
@@ -91,6 +91,9 @@ namespace API_Ecommerce.DTOs
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Token { get; set; }
 
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
+
         public string? ShopName { get; set; }
 
         [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -102,5 +105,11 @@ namespace API_Ecommerce.DTOs
         public List<AddressResponseDto> Addresses { get; set; } = new();
 
         public long? SellerId => Role == "Seller" ? UserId : null;
+    }
+
+    public class RefreshTokenDto
+    {
+        [Required(ErrorMessage = "Refresh Token is required.")]
+        public string RefreshToken { get; set; } = string.Empty;
     }
 }
