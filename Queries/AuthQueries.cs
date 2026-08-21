@@ -89,36 +89,34 @@ namespace API_Ecommerce.Queries
         public async Task<object> GetAllSellersAsync(PaginationParamsDtos paginationParams)
         {
             const string countSql = @"
-                SELECT COUNT(1) 
-                FROM Auths u 
-                WHERE u.Role = @RoleInt OR CAST(u.Role AS NVARCHAR(50)) = @RoleStr;";
+        SELECT COUNT(1) 
+        FROM Auths u 
+        WHERE u.Role = @RoleStr;";
 
-            // Paginates the users first, then joins addresses to avoid row-multiplication bug
             const string dataSql = @"
-                WITH PagedUsers AS (
-                    SELECT 
-                        u.Id AS UserId, u.FullName, u.Email, u.PhoneNumber, 
-                        CAST(u.Role AS NVARCHAR(50)) AS Role, u.ShopName, 
-                        u.Status, u.ProfileImageUrl, u.RefreshToken, 
-                        u.RefreshTokenExpiryTime, u.CreatedAt
-                    FROM Auths u
-                    WHERE u.Role = @RoleInt OR CAST(u.Role AS NVARCHAR(50)) = @RoleStr
-                    ORDER BY u.CreatedAt DESC
-                    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
-                )
-                SELECT 
-                    p.UserId, p.FullName, p.Email, p.PhoneNumber, p.Role, 
-                    p.ShopName, p.Status, p.ProfileImageUrl, p.RefreshToken, 
-                    p.RefreshTokenExpiryTime,
-                    a.Id, a.AddressType, a.StreetAddress, a.City, a.State, 
-                    a.PostalCode, a.Country, a.IsDefault, a.CreatedAt, a.UpdatedAt
-                FROM PagedUsers p
-                LEFT JOIN Addresses a ON p.UserId = a.UserId
-                ORDER BY p.CreatedAt DESC;";
+        WITH PagedUsers AS (
+            SELECT 
+                u.Id AS UserId, u.FullName, u.Email, u.PhoneNumber, 
+                u.Role, u.ShopName, 
+                u.Status, u.ProfileImageUrl, u.RefreshToken, 
+                u.RefreshTokenExpiryTime, u.CreatedAt
+            FROM Auths u
+            WHERE u.Role = @RoleStr
+            ORDER BY u.CreatedAt DESC
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY
+        )
+        SELECT 
+            p.UserId, p.FullName, p.Email, p.PhoneNumber, p.Role, 
+            p.ShopName, p.Status, p.ProfileImageUrl, p.RefreshToken, 
+            p.RefreshTokenExpiryTime,
+            a.Id, a.AddressType, a.StreetAddress, a.City, a.State, 
+            a.PostalCode, a.Country, a.IsDefault, a.CreatedAt, a.UpdatedAt
+        FROM PagedUsers p
+        LEFT JOIN Addresses a ON p.UserId = a.UserId
+        ORDER BY p.CreatedAt DESC;";
 
             var parameters = new DynamicParameters();
-            parameters.Add("RoleInt", (int)Roles.Seller);
-            parameters.Add("RoleStr", Roles.Seller.ToString());
+            parameters.Add("RoleStr", Roles.Seller.ToString()); // Sends "Seller"
             parameters.Add("Offset", (paginationParams.PageNumber - 1) * paginationParams.PageSize);
             parameters.Add("PageSize", paginationParams.PageSize);
 
