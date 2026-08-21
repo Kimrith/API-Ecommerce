@@ -86,6 +86,8 @@ namespace API_Ecommerce.Queries
                 "price_desc" => "ORDER BY p.Price DESC",
                 "name" => "ORDER BY p.Name ASC",
                 "oldest" => "ORDER BY p.CreatedAt ASC",
+                "best_selling" => "ORDER BY (SELECT COALESCE(SUM(oi.Quantity), 0) FROM order_items oi INNER JOIN orders o ON oi.OrderId = o.Id WHERE oi.ProductId = p.Id AND o.Status IN (1, 2, 3, 5)) DESC",
+                "most_popular" => "ORDER BY (SELECT COALESCE(SUM(oi.Quantity), 0) FROM order_items oi INNER JOIN orders o ON oi.OrderId = o.Id WHERE oi.ProductId = p.Id AND o.Status IN (1, 2, 3, 5)) DESC",
                 _ => "ORDER BY p.CreatedAt DESC"
             };
 
@@ -197,6 +199,8 @@ namespace API_Ecommerce.Queries
                 "price_desc" => "ORDER BY p.Price DESC",
                 "name" => "ORDER BY p.Name ASC",
                 "oldest" => "ORDER BY p.CreatedAt ASC",
+                "best_selling" => "ORDER BY (SELECT COALESCE(SUM(oi.Quantity), 0) FROM order_items oi INNER JOIN orders o ON oi.OrderId = o.Id WHERE oi.ProductId = p.Id AND o.Status IN (1, 2, 3, 5)) DESC",
+                "most_popular" => "ORDER BY (SELECT COALESCE(SUM(oi.Quantity), 0) FROM order_items oi INNER JOIN orders o ON oi.OrderId = o.Id WHERE oi.ProductId = p.Id AND o.Status IN (1, 2, 3, 5)) DESC",
                 _ => "ORDER BY p.CreatedAt DESC"
             };
 

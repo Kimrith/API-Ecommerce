@@ -1,4 +1,6 @@
+using API_Ecommerce.Commands.Cart;
 using API_Ecommerce.Data;
+using API_Ecommerce.DTOs;
 using API_Ecommerce.Enums;
 using API_Ecommerce.Services;
 using Microsoft.EntityFrameworkCore;
@@ -14,11 +16,16 @@ namespace API_Ecommerce.Commands.Update
     {
         private readonly AppDbContext _context;
         private readonly IBakongService _bakongService;
+        private readonly ITelegramNotificationService _telegramService;
 
-        public VerifyPaymentCommandHandler(AppDbContext context, IBakongService bakongService)
+        public VerifyPaymentCommandHandler(
+            AppDbContext context,
+            IBakongService bakongService,
+            ITelegramNotificationService telegramService)
         {
             _context = context;
             _bakongService = bakongService;
+            _telegramService = telegramService;
         }
 
         public async Task<(bool Success, string Status, string Message)> HandleAsync(VerifyPaymentCommand command)
@@ -64,10 +71,13 @@ namespace API_Ecommerce.Commands.Update
                     payment.Order.Status = OrderStatus.Processing;
                     payment.Order.UpdatedAt = DateTime.UtcNow;
 
+                    // 1. Fetch OrderItems with Product details
                     var orderItems = await _context.OrderItems
+                        .Include(oi => oi.Product)
                         .Where(oi => oi.OrderId == payment.OrderId)
                         .ToListAsync();
 
+                    // 2. Reduce Stock
                     foreach (var item in orderItems)
                     {
                         var inventory = await _context.Inventories
@@ -83,11 +93,58 @@ namespace API_Ecommerce.Commands.Update
                             inventory.UpdatedAt = DateTime.UtcNow;
                         }
                     }
+
+                    // 3. Save DB Changes
+                    await _context.SaveChangesAsync();
+
+                    // 4. Build DTO Response
+                    var orderResponse = new OrderDtos.Response
+                    {
+                        Id = payment.Order.Id,
+                        OrderNumber = payment.Order.OrderNumber ?? $"ORD-{payment.Order.Id}",
+                        UserId = payment.Order.UserId ?? 0,
+                        Status = payment.Order.Status,
+                        Subtotal = payment.Order.Subtotal,
+                        TaxAmount = payment.Order.TaxAmount,
+                        ShippingAmount = payment.Order.ShippingAmount,
+                        DiscountAmount = payment.Order.DiscountAmount,
+                        TotalAmount = payment.Order.TotalAmount,
+                        Currency = payment.Order.Currency ?? "USD",
+                        Notes = payment.Order.Notes,
+                        CreatedAt = payment.Order.CreatedAt
+                    };
+
+                    var cartItems = orderItems.Select(oi => new CartItemDto
+                    {
+                        ProductId = oi.ProductId,
+                        ProductName = oi.Product?.Name ?? $"Product #{oi.ProductId}",
+                        Price = oi.UnitPrice,
+                        Quantity = oi.Quantity
+                    }).ToList();
+
+                    // 5. Customer info from Order
+                    string customerName = $"Customer #{payment.Order.UserId}";
+                    string customerPhone = "N/A";
+                    string formattedAddress = payment.Order.ShippingAddressId.HasValue
+                        ? $"Address ID: #{payment.Order.ShippingAddressId.Value}"
+                        : "No address specified";
+
+                    // 6. Push to Telegram
+                    _ = _telegramService.SendPaidOrderAlertAsync(
+                        order: orderResponse,
+                        items: cartItems,
+                        customerName: customerName,
+                        customerEmail: null,
+                        customerPhone: customerPhone,
+                        addressText: formattedAddress,
+                        paymentMethod: "BakongKHQR"
+                    );
+
+                    return (true, "PAID", "Payment verified successfully! Order updated and stock decreased.");
                 }
 
                 await _context.SaveChangesAsync();
-
-                return (true, "PAID", "Payment verified successfully! Order updated and stock decreased.");
+                return (true, "PAID", "Payment verified successfully!");
             }
 
             await _context.SaveChangesAsync(); // Save raw response for diagnostics

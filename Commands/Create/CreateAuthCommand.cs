@@ -97,6 +97,10 @@ namespace API_Ecommerce.Commands.Create
                 throw new InvalidOperationException("Invalid email or password.");
             }
 
+            if (user.Status == AuthStatus.Suspended)
+            {
+                throw new InvalidOperationException("Your account has been suspended. Please contact support.");
+            }
             if (user.Status != AuthStatus.Active)
             {
                 throw new InvalidOperationException("Your account is inactive. Please contact support.");

@@ -77,6 +77,9 @@ builder.Services.AddScoped<BannerQueries>();
 // Review 
 builder.Services.AddScoped<ReviewQueries>();
 
+// telegram notification service
+builder.Services.AddHttpClient<ITelegramNotificationService, TelegramNotificationService>();
+
 // Token & Infrastructure Services
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.Configure<BakongSettings>(builder.Configuration.GetSection("Bakong"));
@@ -205,7 +208,10 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // ==========================================
 // 9. Middleware Pipeline Order
