@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using API_Ecommerce.Commands.Create;
 using API_Ecommerce.Commands.Suspend;
 using API_Ecommerce.Commands.Update;
@@ -8,12 +9,15 @@ using API_Ecommerce.Commands.Delete;
 using API_Ecommerce.Data;
 using API_Ecommerce.Queries;
 using API_Ecommerce.Services;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using API_Ecommerce.Models;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -116,9 +120,21 @@ builder.Services.AddAuthentication(options =>
 });
 
 // ==========================================
-// 5. Controllers & JSON Formatting
+// 5. Antiforgery (CSRF Defense) & Rate Limiting Setup
 // ==========================================
-builder.Services.AddControllers()
+builder.Services.AddAntiforgery(options =>
+{
+    options.Cookie.Name = ".AspNetCore.Antiforgery";
+    options.Cookie.HttpOnly = false;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.HeaderName = "X-XSRF-TOKEN";
+});
+
+// ==========================================
+// 6. Controllers & JSON Formatting
+// ==========================================
+builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
     {
         // Convert Enums to readable strings ("Draft", "Pending", "Approved", "Suspended", etc.)
@@ -129,7 +145,6 @@ builder.Services.AddControllers()
         options.ModelMetadataDetailsProviders.Add(
             new Microsoft.AspNetCore.Mvc.ModelBinding.Metadata.SystemTextJsonValidationMetadataProvider());
     });
-
 // ==========================================
 // 6. OpenAPI / Scalar setup with Global Bearer Auth
 // ==========================================
@@ -165,20 +180,91 @@ builder.Services.AddOpenApi("v1", options =>
 });
 
 // ==========================================
-// 7. CORS Configuration (Allow All)
+// 7. CORS Configuration
 // ==========================================
+
+//builder.Services.AddCors(options =>
+//{
+//    options.AddPolicy("AllowAngular",
+//        policy => policy.WithOrigins("http://localhost:4200",
+//                        "http://127.0.0.1:4200",
+//                        "http://localhost:54902",
+//                        "http://localhost:65404")
+//                        .AllowAnyHeader()
+//                        .AllowAnyMethod()
+//                        .AllowCredentials());
+//});
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAngular",
-        policy => policy.WithOrigins("http://localhost:4200", 
-                        "http://127.0.0.1:4200",
-                        "http://localhost:54902")
-                        .AllowAnyHeader()
-                        .AllowAnyMethod());
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.SetIsOriginAllowed(origin => true)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
 });
 
 // ==========================================
-// 8. Build App & Middleware Pipeline
+// 8. Rate Limiting Setup
+// ==========================================
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "application/problem+json";
+        context.HttpContext.Response.Headers["Retry-After"] = "60";
+
+        var problemDetails = new Microsoft.AspNetCore.Mvc.ProblemDetails
+        {
+            Status = StatusCodes.Status429TooManyRequests,
+            Title = "Too Many Requests",
+            Detail = "Rate limit exceeded. Please wait a moment before trying again.",
+            Instance = context.HttpContext.Request.Path
+        };
+
+        await context.HttpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken: cancellationToken);
+    };
+
+    options.AddPolicy("AuthRateLimit", httpContext =>
+    {
+        if (HttpMethods.IsOptions(httpContext.Request.Method))
+        {
+            return RateLimitPartition.GetNoLimiter("options");
+        }
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
+
+    options.AddPolicy("CheckoutRateLimit", httpContext =>
+    {
+        if (HttpMethods.IsOptions(httpContext.Request.Method))
+        {
+            return RateLimitPartition.GetNoLimiter("options");
+        }
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
+});
+
+// ==========================================
+// 9. Build App & Middleware Pipeline
 // ==========================================
 var app = builder.Build();
 
@@ -206,6 +292,7 @@ if (app.Environment.IsDevelopment())
                .WithTheme(ScalarTheme.Moon)
                .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
     });
+    app.MapGet("/scalar", () => Results.Redirect("/scalar/v1"));
 }
 
 if (!app.Environment.IsDevelopment())
@@ -214,14 +301,90 @@ if (!app.Environment.IsDevelopment())
 }
 
 // ==========================================
-// 9. Middleware Pipeline Order
+// 10. Middleware Pipeline Order
 // ==========================================
-app.UseStaticFiles(); // Serves uploaded product, category & user images from wwwr
-// 👈 CORS MUST be placed before Authentication and Authorization
-app.UseCors("AllowAngular");
+
+// 1. CORS MUST be placed before Static Files, Security Headers, Authentication, Rate Limiting, and Authorization
+app.UseCors("AllowAll");
+
+// 2. Configure Static File Options with CORS response headers
+var staticFileOptions = new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.AccessControlAllowOrigin = "*";
+        ctx.Context.Response.Headers.AccessControlAllowMethods = "GET, HEAD, OPTIONS";
+        ctx.Context.Response.Headers.AccessControlAllowHeaders = "*";
+    }
+};
+
+app.UseStaticFiles(staticFileOptions);
+
+// 3. Configure external /uploads physical directory mapping if present
+var uploadsPath = Path.Combine(builder.Environment.ContentRootPath, "uploads");
+if (Directory.Exists(uploadsPath))
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(uploadsPath),
+        RequestPath = "/uploads",
+        OnPrepareResponse = ctx =>
+        {
+            ctx.Context.Response.Headers.AccessControlAllowOrigin = "*";
+            ctx.Context.Response.Headers.AccessControlAllowMethods = "GET, HEAD, OPTIONS";
+            ctx.Context.Response.Headers.AccessControlAllowHeaders = "*";
+        }
+    });
+}
+
+// Security Headers (XSS & Frame Defense)
+app.Use(async (context, next) =>
+{
+    // Relax CSP for Scalar API documentation & OpenAPI spec so Scalar UI scripts/styles render cleanly
+    if (context.Request.Path.StartsWithSegments("/scalar") || context.Request.Path.StartsWithSegments("/openapi"))
+    {
+        context.Response.Headers["Content-Security-Policy"] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: http: data: blob:;";
+    }
+    else
+    {
+        context.Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: http:;";
+    }
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    await next();
+});
+
+// Rate Limiting Middleware
+app.UseRateLimiter();
+
+// CSRF Token Cookie Middleware (issue/refresh XSRF-TOKEN on GET requests)
+app.Use(async (context, next) =>
+{
+    var antiforgery = context.RequestServices.GetRequiredService<IAntiforgery>();
+    var tokens = antiforgery.GetAndStoreTokens(context);
+    if (tokens.RequestToken != null)
+    {
+        context.Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken, new CookieOptions
+        {
+            HttpOnly = false,
+            SameSite = SameSiteMode.Lax,
+            Secure = context.Request.IsHttps,
+            Path = "/"
+        });
+    }
+    await next();
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapGet("/api/csrf-token", (IAntiforgery antiforgery, HttpContext context) =>
+{
+    var tokens = antiforgery.GetAndStoreTokens(context);
+    return Results.Ok(new { token = tokens.RequestToken, headerName = "X-XSRF-TOKEN" });
+});
+
 app.Run();

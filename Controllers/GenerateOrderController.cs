@@ -1,6 +1,7 @@
-﻿using API_Ecommerce.Queries;
+using API_Ecommerce.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace API_Ecommerce.Controllers
 {
@@ -17,6 +18,7 @@ namespace API_Ecommerce.Controllers
         }
 
         [HttpGet("{id}/generate-qr")]
+        [EnableRateLimiting("CheckoutRateLimit")]
         public async Task<IActionResult> GenerateQr(long id)
         {
             try
@@ -39,4 +41,4 @@ namespace API_Ecommerce.Controllers
             }
         }
     }
-}
+}

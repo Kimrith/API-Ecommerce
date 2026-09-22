@@ -4,6 +4,7 @@ using API_Ecommerce.DTOs;
 using API_Ecommerce.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -40,6 +41,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpPost("generate-qr-from-cart")]
+    [EnableRateLimiting("CheckoutRateLimit")]
     public async Task<IActionResult> GenerateQrFromCart([FromBody] CheckoutRequestDto request)
     {
         var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -59,6 +61,16 @@ public class PaymentController : ControllerBase
         }
 
         return Ok(data);
+    }
+
+    // ==========================================
+    // Bakong KHQR Webhook Callback (Exempt from Anti-Forgery validation)
+    // ==========================================
+    [HttpPost("bakong-callback")]
+    [AllowAnonymous]
+    public IActionResult BakongCallback([FromBody] object payload)
+    {
+        return Ok(new { success = true, message = "Bakong payment notification received." });
     }
 
     [HttpGet("verify-payment/{orderId}")]
