@@ -4,5 +4,7 @@ namespace API_Ecommerce.Enums
     {
         Shipping = 0,
         Billing = 1,
+        Home = 2,
+        Office = 3
     }
 }

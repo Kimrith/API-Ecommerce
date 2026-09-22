@@ -5,6 +5,7 @@ using API_Ecommerce.Models;
 using API_Ecommerce.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 
 namespace API_Ecommerce.Controllers
@@ -32,6 +33,7 @@ namespace API_Ecommerce.Controllers
         // ==========================================
         [HttpPost]
         [Authorize]
+        [EnableRateLimiting("CheckoutRateLimit")]
         [ProducesResponseType(typeof(OrderDtos.Response), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

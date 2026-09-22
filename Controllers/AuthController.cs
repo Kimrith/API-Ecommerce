@@ -1,6 +1,7 @@
 using API_Ecommerce.Commands.Create;
 using API_Ecommerce.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace API_Ecommerce.Controllers
 {
@@ -18,6 +19,7 @@ namespace API_Ecommerce.Controllers
         // --- 1. REGISTER (USER / SELLER / ADMIN) ---
         [HttpPost("register")]
         [Consumes("multipart/form-data")]
+        [EnableRateLimiting("AuthRateLimit")]
         public async Task<IActionResult> Register([FromForm] RegisterDto dto)
         {
             try
@@ -69,6 +71,7 @@ namespace API_Ecommerce.Controllers
 
         // --- 2. LOGIN ---
         [HttpPost("login")]
+        [EnableRateLimiting("AuthRateLimit")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
             try
@@ -88,6 +91,7 @@ namespace API_Ecommerce.Controllers
 
         // --- 3. REFRESH TOKEN ---
         [HttpPost("refresh-token")]
+        [EnableRateLimiting("AuthRateLimit")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto dto)
         {
             try
