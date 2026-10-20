@@ -59,6 +59,12 @@ namespace API_Ecommerce.Controllers
         [Authorize]
         public async Task<ActionResult<IEnumerable<ReviewResponseDto>>> GetReviewsByUserId(long userId)
         {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+            if (long.TryParse(userIdClaim, out var currentUserId) && currentUserId != userId && !User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
             var query = new GetReviewsByUserIdQuery { UserId = userId };
             var result = await _mediator.Send(query);
             return Ok(result);

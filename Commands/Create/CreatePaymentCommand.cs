@@ -25,7 +25,7 @@ namespace API_Ecommerce.Commands.Create
             _bakongService = bakongService;
         }
 
-        public async Task<(bool Success, string Message, object Data)> HandleAsync(CreatePaymentCommand command)
+        public async Task<(bool Success, string Message, object? Data)> HandleAsync(CreatePaymentCommand command)
         {
             if (command?.Items == null || !command.Items.Any())
             {
@@ -35,16 +35,23 @@ namespace API_Ecommerce.Commands.Create
             int userId = command.UserId > 0 ? command.UserId : 8;
             decimal subtotal = 0;
             int validItemsCount = 0;
+            var now = DateTime.UtcNow;
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 foreach (var cartItem in command.Items)
                 {
-                    var product = await _context.Products.FindAsync(cartItem.ProductId);
-                    if (product == null) continue;
+                    if (cartItem.Quantity <= 0) continue;
 
-                    decimal unitPrice = cartItem.Price > 0 ? cartItem.Price : product.Price;
+                    var product = await _context.Products.FindAsync(cartItem.ProductId);
+                    if (product == null || product.Status != ProductStatus.Approved) continue;
+
+                    bool hasActiveDiscount = product.DiscountPrice.HasValue && product.DiscountPrice.Value > 0 &&
+                        (!product.DiscountStartDate.HasValue || now >= product.DiscountStartDate.Value) &&
+                        (!product.DiscountEndDate.HasValue || now <= product.DiscountEndDate.Value);
+
+                    decimal unitPrice = (hasActiveDiscount && product.DiscountPrice.HasValue) ? product.DiscountPrice.Value : product.Price;
                     subtotal += unitPrice * cartItem.Quantity;
                     validItemsCount++;
                 }
@@ -81,10 +88,16 @@ namespace API_Ecommerce.Commands.Create
 
                 foreach (var cartItem in command.Items)
                 {
-                    var product = await _context.Products.FindAsync(cartItem.ProductId);
-                    if (product == null) continue;
+                    if (cartItem.Quantity <= 0) continue;
 
-                    decimal unitPrice = cartItem.Price > 0 ? cartItem.Price : product.Price;
+                    var product = await _context.Products.FindAsync(cartItem.ProductId);
+                    if (product == null || product.Status != ProductStatus.Approved) continue;
+
+                    bool hasActiveDiscount = product.DiscountPrice.HasValue && product.DiscountPrice.Value > 0 &&
+                        (!product.DiscountStartDate.HasValue || now >= product.DiscountStartDate.Value) &&
+                        (!product.DiscountEndDate.HasValue || now <= product.DiscountEndDate.Value);
+
+                    decimal unitPrice = (hasActiveDiscount && product.DiscountPrice.HasValue) ? product.DiscountPrice.Value : product.Price;
                     var orderItem = new OrderItem
                     {
                         OrderId = order.Id,

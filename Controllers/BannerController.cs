@@ -1,9 +1,10 @@
-﻿using API_Ecommerce.Commands.Create;
+using API_Ecommerce.Commands.Create;
 using API_Ecommerce.Commands.Delete;
 using API_Ecommerce.Commands.Update;
 using API_Ecommerce.DTOs;
 using API_Ecommerce.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API_Ecommerce.Controllers
@@ -45,6 +46,7 @@ namespace API_Ecommerce.Controllers
 
         // POST: api/banner
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [Consumes("multipart/form-data")]
         public async Task<ActionResult<BannerResponseDto>> CreateBanner([FromForm] CreateBannerDto dto)
         {
@@ -56,6 +58,7 @@ namespace API_Ecommerce.Controllers
 
         // PUT: api/banner/{id}
         [HttpPut("{id:long}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<BannerResponseDto>> UpdateBanner(long id, [FromForm] UpdateBannerDto dto)
         {
             var command = new UpdateBannerCommand(id, dto);
@@ -71,6 +74,7 @@ namespace API_Ecommerce.Controllers
 
         // DELETE: api/banner/{id}
         [HttpDelete("{id:long}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteBanner(long id)
         {
             var command = new DeleteBannerCommand(id);

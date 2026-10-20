@@ -1,4 +1,4 @@
-﻿using API_Ecommerce.Commands.Create;
+using API_Ecommerce.Commands.Create;
 using API_Ecommerce.Commands.Delete;
 using API_Ecommerce.Commands.Update;
 using API_Ecommerce.DTOs;
@@ -6,10 +6,13 @@ using API_Ecommerce.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace API_Ecommerce.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Roles = "Admin,Seller")]
     public class InventoryController : ControllerBase
     {
         private readonly IMediator _mediator;

@@ -1,4 +1,4 @@
-﻿using API_Ecommerce.Data;
+using API_Ecommerce.Data;
 using API_Ecommerce.DTOs;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,7 +13,7 @@ namespace API_Ecommerce.Commands.Update
             _context = context;
         }
 
-        public async Task<(bool Success, string Message, object Data)> HandleAsync(long id, OrderDtos.UpdateStatus dto)
+        public async Task<(bool Success, string Message, object? Data)> HandleAsync(long id, OrderDtos.UpdateStatus dto)
         {
             var order = await _context.Orders.FindAsync(id);
             if (order == null)

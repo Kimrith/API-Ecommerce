@@ -10,7 +10,7 @@ namespace API_Ecommerce.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    // [Authorize] // Uncomment when authentication is active
+    [Authorize]
     public class FavoriteController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -22,21 +22,31 @@ namespace API_Ecommerce.Controllers
             _favoriteQueries = favoriteQueries;
         }
 
-        // Helper to extract User ID from JWT Claims if available, fallback for testing
-        private long GetCurrentUserId()
+        private long? GetCurrentUserId()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
             if (long.TryParse(userIdClaim, out long userId))
             {
                 return userId;
             }
-            return 1; // Default fallback for development/testing if token isn't fully set up
+            return null;
         }
 
         // GET: api/favorite/user/{userId}
         [HttpGet("user/{userId:long}")]
         public async Task<ActionResult<IEnumerable<FavoriteResponseDto>>> GetUserFavorites(long userId)
         {
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                return Unauthorized(new { message = "Invalid or missing user token." });
+            }
+
+            if (currentUserId.Value != userId && !User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+
             var favorites = await _favoriteQueries.GetFavoritesByUserIdAsync(userId);
             return Ok(favorites);
         }
@@ -45,14 +55,18 @@ namespace API_Ecommerce.Controllers
         [HttpPost]
         public async Task<ActionResult<FavoriteResponseDto>> AddFavorite([FromBody] CreateFavoriteDto dto)
         {
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                return Unauthorized(new { message = "Invalid or missing user token." });
+            }
+
             try
             {
-                long userId = GetCurrentUserId(); // Extract from token or use fallback
-
-                var command = new CreateFavoriteCommand(userId, dto.ProductId);
+                var command = new CreateFavoriteCommand(currentUserId.Value, dto.ProductId);
                 var result = await _mediator.Send(command);
 
-                return CreatedAtAction(nameof(GetUserFavorites), new { userId = userId }, result);
+                return CreatedAtAction(nameof(GetUserFavorites), new { userId = currentUserId.Value }, result);
             }
             catch (InvalidOperationException ex)
             {
@@ -62,9 +76,9 @@ namespace API_Ecommerce.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { message = "An error occurred while adding to favorites.", details = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while adding to favorites." });
             }
         }
 
@@ -72,9 +86,13 @@ namespace API_Ecommerce.Controllers
         [HttpDelete("product/{productId:long}")]
         public async Task<IActionResult> RemoveFavorite(long productId)
         {
-            long userId = GetCurrentUserId();
+            var currentUserId = GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                return Unauthorized(new { message = "Invalid or missing user token." });
+            }
 
-            var command = new DeleteFavoriteCommand(userId, productId);
+            var command = new DeleteFavoriteCommand(currentUserId.Value, productId);
             var deleted = await _mediator.Send(command);
 
             if (!deleted)

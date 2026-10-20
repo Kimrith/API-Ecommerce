@@ -16,23 +16,10 @@ namespace API_Ecommerce.Queries
         public async Task<List<UserAddressResponseDto>> GetAddressesByUserIdAsync(long userId)
         {
             var items = await _context.Addresses
-                .FromSqlInterpolated($@"
-                    SELECT 
-                        Id, 
-                        UserId, 
-                        AddressType, 
-                        StreetAddress, 
-                        City, 
-                        State, 
-                        PostalCode, 
-                        Country, 
-                        IsDefault, 
-                        CreatedAt, 
-                        UpdatedAt 
-                    FROM dbo.Addresses 
-                    WHERE UserId = {userId} 
-                    ORDER BY IsDefault DESC, CreatedAt DESC")
                 .AsNoTracking()
+                .Where(a => a.UserId == userId)
+                .OrderByDescending(a => a.IsDefault)
+                .ThenByDescending(a => a.CreatedAt)
                 .ToListAsync();
 
             return items.Select(MapToUserAddressDto).ToList();
@@ -41,23 +28,8 @@ namespace API_Ecommerce.Queries
         public async Task<UserAddressResponseDto?> GetAddressByIdAsync(long addressId, long userId)
         {
             var item = await _context.Addresses
-                .FromSqlInterpolated($@"
-                    SELECT TOP (1) 
-                        Id, 
-                        UserId, 
-                        AddressType, 
-                        StreetAddress, 
-                        City, 
-                        State, 
-                        PostalCode, 
-                        Country, 
-                        IsDefault, 
-                        CreatedAt, 
-                        UpdatedAt 
-                    FROM dbo.Addresses 
-                    WHERE Id = {addressId} AND UserId = {userId}")
                 .AsNoTracking()
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(a => a.Id == addressId && a.UserId == userId);
 
             return item == null ? null : MapToUserAddressDto(item);
         }

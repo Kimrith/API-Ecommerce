@@ -1,4 +1,4 @@
-﻿using API_Ecommerce.Data;
+using API_Ecommerce.Data;
 using API_Ecommerce.DTOs;
 using API_Ecommerce.Enums;
 using MediatR;
@@ -62,8 +62,20 @@ namespace API_Ecommerce.Commands.Cart
                 }
             }
 
-            // Calculate subtotal from items coming from Angular local storage
-            decimal subtotal = request.CartItems.Sum(i => i.Price * i.Quantity);
+            // Recalculate subtotal directly from database catalog (ignore client-submitted prices)
+            decimal subtotal = 0;
+            foreach (var item in request.CartItems)
+            {
+                var product = await _context.Products.FindAsync(new object[] { item.ProductId }, cancellationToken);
+                if (product == null) continue;
+
+                bool hasActiveDiscount = product.DiscountPrice.HasValue && product.DiscountPrice.Value > 0 &&
+                    (!product.DiscountStartDate.HasValue || now >= product.DiscountStartDate.Value) &&
+                    (!product.DiscountEndDate.HasValue || now <= product.DiscountEndDate.Value);
+
+                decimal unitPrice = (hasActiveDiscount && product.DiscountPrice.HasValue) ? product.DiscountPrice.Value : product.Price;
+                subtotal += unitPrice * Math.Max(1, item.Quantity);
+            }
 
             if (coupon.MinimumAmount.HasValue && subtotal < coupon.MinimumAmount.Value)
             {
