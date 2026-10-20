@@ -21,6 +21,12 @@ using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Default to Development when running locally without explicit environment set
+if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")))
+{
+    builder.Environment.EnvironmentName = Environments.Development;
+}
+
 // ==========================================
 // 1. Database Context
 // ==========================================
@@ -179,29 +185,13 @@ builder.Services.AddOpenApi("v1", options =>
     });
 });
 
-// ==========================================
-// 7. CORS Configuration
-// ==========================================
-
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("AllowAngular",
-//        policy => policy.WithOrigins("http://localhost:4200",
-//                        "http://127.0.0.1:4200",
-//                        "http://localhost:54902",
-//                        "http://localhost:65404")
-//                        .AllowAnyHeader()
-//                        .AllowAnyMethod()
-//                        .AllowCredentials());
-//});
-
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("LocalDevPolicy", policy =>
     {
-        policy.SetIsOriginAllowed(origin => true)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
+        policy.WithOrigins("http://localhost:4200", "http://127.0.0.1:4200")
+              .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+              .WithHeaders("Content-Type", "Authorization", "X-Requested-With", "X-XSRF-TOKEN", "Accept", "Origin")
               .AllowCredentials();
     });
 });
@@ -283,17 +273,16 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-if (app.Environment.IsDevelopment())
+// OpenAPI / Scalar API Documentation
+app.MapOpenApi();
+app.MapScalarApiReference(options =>
 {
-    app.MapOpenApi();
-    app.MapScalarApiReference(options =>
-    {
-        options.WithTitle("E-Commerce API")
-               .WithTheme(ScalarTheme.Moon)
-               .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
-    });
-    app.MapGet("/scalar", () => Results.Redirect("/scalar/v1"));
-}
+    options.WithTitle("E-Commerce API")
+           .WithTheme(ScalarTheme.Moon)
+           .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+});
+app.MapGet("/scalar", () => Results.Redirect("/scalar/v1"));
+app.MapGet("/", () => Results.Redirect("/scalar/v1"));
 
 if (!app.Environment.IsDevelopment())
 {
@@ -304,10 +293,44 @@ if (!app.Environment.IsDevelopment())
 // 10. Middleware Pipeline Order
 // ==========================================
 
+// Global RFC 7807 Exception Handler (sanitized error masking)
+app.UseExceptionHandler(exceptionHandlerApp =>
+{
+    exceptionHandlerApp.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/problem+json";
+
+        var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        if (exceptionHandlerPathFeature?.Error != null)
+        {
+            logger.LogError(exceptionHandlerPathFeature.Error, "Unhandled exception at {Path}", context.Request.Path);
+        }
+
+        var problemDetails = new Microsoft.AspNetCore.Mvc.ProblemDetails
+        {
+            Status = StatusCodes.Status500InternalServerError,
+            Title = "An error occurred while processing your request.",
+            Detail = "An unexpected error occurred. Please try again later.",
+            Instance = context.Request.Path,
+            Type = "https://tools.ietf.org/html/rfc7231#section-6.6.1"
+        };
+        problemDetails.Extensions["traceId"] = context.TraceIdentifier;
+
+        await context.Response.WriteAsJsonAsync(problemDetails);
+    });
+});
+
 // 1. CORS MUST be placed before Static Files, Security Headers, Authentication, Rate Limiting, and Authorization
-app.UseCors("AllowAll");
+app.UseCors("LocalDevPolicy");
 
 // 2. Configure Static File Options with CORS response headers
+if (!string.IsNullOrEmpty(app.Environment.WebRootPath) && !Directory.Exists(app.Environment.WebRootPath))
+{
+    Directory.CreateDirectory(app.Environment.WebRootPath);
+}
+
 var staticFileOptions = new StaticFileOptions
 {
     OnPrepareResponse = ctx =>

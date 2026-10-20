@@ -3,12 +3,15 @@ using API_Ecommerce.Commands.Update;
 using API_Ecommerce.DTOs;
 using API_Ecommerce.Enums;
 using API_Ecommerce.Queries;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace API_Ecommerce.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UserController : ControllerBase
     {
         private readonly AuthQueries _authQueries;
@@ -25,8 +28,21 @@ namespace API_Ecommerce.Controllers
             _suspendAuthCommand = suspendAuthCommand;
         }
 
+        private bool CanAccessUser(long userId)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
+
+            if (long.TryParse(userIdClaim, out long currentUserId))
+            {
+                return currentUserId == userId || userRole == "Admin";
+            }
+            return false;
+        }
+
         // --- 1. GET ALL USERS (GET /api/User?pageNumber=1&pageSize=10&status=Active) ---
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllUsers(
             [FromQuery] PaginationParamsDtos paginationParams,
             [FromQuery] AuthStatus? status = null)
@@ -36,14 +52,15 @@ namespace API_Ecommerce.Controllers
                 var users = await _authQueries.GetAllUsersAsync(paginationParams, status);
                 return Ok(users);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { message = "An error occurred while fetching users.", details = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while fetching users." });
             }
         }
 
         // --- 2. GET ALL SELLERS (GET /api/User/sellers?pageNumber=1&pageSize=10) ---
         [HttpGet("sellers")]
+        [Authorize(Roles = "Admin,Seller")]
         public async Task<IActionResult> GetAllSellers([FromQuery] PaginationParamsDtos paginationParams)
         {
             try
@@ -51,14 +68,15 @@ namespace API_Ecommerce.Controllers
                 var sellers = await _authQueries.GetAllSellersAsync(paginationParams);
                 return Ok(sellers);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { message = "An error occurred while fetching sellers.", details = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while fetching sellers." });
             }
         }
 
         // --- 3. GET USER BY EMAIL (GET /api/User/by-email?email=test@gmail.com) ---
         [HttpGet("by-email")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetUserByEmail([FromQuery] string? email)
         {
             try
@@ -76,9 +94,9 @@ namespace API_Ecommerce.Controllers
 
                 return Ok(user);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { message = "An error occurred while fetching the user.", details = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while fetching the user." });
             }
         }
 
@@ -86,6 +104,11 @@ namespace API_Ecommerce.Controllers
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetUserById(int id)
         {
+            if (!CanAccessUser(id))
+            {
+                return Forbid();
+            }
+
             try
             {
                 var user = await _authQueries.GetByIdAsync(id);
@@ -96,14 +119,15 @@ namespace API_Ecommerce.Controllers
 
                 return Ok(user);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { message = "An error occurred while fetching the user.", details = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while fetching the user." });
             }
         }
 
         // --- 5. SUSPEND USER OR SELLER (PATCH /api/User/1/suspend) ---
         [HttpPatch("{id:int}/suspend")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SuspendUser(int id)
         {
             try
@@ -120,14 +144,15 @@ namespace API_Ecommerce.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { message = "An error occurred while suspending the account.", details = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while suspending the account." });
             }
         }
 
         // --- 6. REACTIVATE USER OR SELLER (PATCH /api/User/1/reactivate) ---
         [HttpPatch("{id:int}/reactivate")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ReactivateUser(int id)
         {
             try
@@ -144,9 +169,9 @@ namespace API_Ecommerce.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { message = "An error occurred while reactivating the account.", details = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while reactivating the account." });
             }
         }
 
@@ -155,6 +180,11 @@ namespace API_Ecommerce.Controllers
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UpdateUser(long id, [FromForm] UpdateUserDto dto)
         {
+            if (!CanAccessUser(id))
+            {
+                return Forbid();
+            }
+
             try
             {
                 string? profileImageUrl = null;
@@ -207,9 +237,9 @@ namespace API_Ecommerce.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { message = "An error occurred while updating the profile.", details = ex.Message });
+                return StatusCode(500, new { message = "An error occurred while updating the profile." });
             }
         }
     }

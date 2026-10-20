@@ -1,6 +1,7 @@
 using API_Ecommerce.Commands.Create;
 using API_Ecommerce.Commands.Update;
 using API_Ecommerce.DTOs;
+using API_Ecommerce.Enums;
 using API_Ecommerce.Models;
 using API_Ecommerce.Queries;
 using Microsoft.AspNetCore.Authorization;
@@ -79,16 +80,31 @@ namespace API_Ecommerce.Controllers
         // 2. GET: api/Order/{id} (Fetch single order)
         // ==========================================
         [HttpGet("{id:long}")]
-        [AllowAnonymous]
+        [Authorize]
         [ProducesResponseType(typeof(OrderDtos.Response), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetOrderById(long id)
         {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out long currentUserId))
+            {
+                return Unauthorized(new { message = "Invalid or missing user token." });
+            }
+
             var order = await _orderQueries.GetOrderByIdAsync(id);
 
             if (order == null)
             {
                 return NotFound(new { message = $"Order with ID {id} was not found." });
+            }
+
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
+            // Enforce resource ownership to mitigate BOLA/IDOR
+            if (order.UserId != currentUserId && userRole != "Admin")
+            {
+                return Forbid();
             }
 
             return Ok(order);
@@ -98,18 +114,18 @@ namespace API_Ecommerce.Controllers
         // 3. GET: api/Order
         // ==========================================
         [HttpGet]
-        [AllowAnonymous]
+        [Authorize]
         public async Task<IActionResult> GetAllOrders([FromQuery] PaginationParamsDtos paginationParams)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
             var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
 
-            long? userId = null;
-            if (!string.IsNullOrEmpty(userIdClaim) && long.TryParse(userIdClaim, out long parsedUserId))
+            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out long parsedUserId))
             {
-                userId = parsedUserId;
+                return Unauthorized(new { message = "Invalid or missing user token." });
             }
 
+            long? userId = (userRole == "Admin") ? null : parsedUserId;
             var result = await _orderQueries.GetAllOrdersAsync(userId, userRole, paginationParams);
             return Ok(result);
         }
@@ -118,8 +134,17 @@ namespace API_Ecommerce.Controllers
         /// Get paginated orders containing products for a specific seller ID.
         /// </summary>
         [HttpGet("seller/{sellerId:long}")]
+        [Authorize(Roles = "Seller,Admin")]
         public async Task<IActionResult> GetOrdersBySellerId(long sellerId, [FromQuery] PaginationParamsDtos paginationParams)
         {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
+
+            if (userRole == "Seller" && long.TryParse(userIdClaim, out long currentUserId) && currentUserId != sellerId)
+            {
+                return Forbid();
+            }
+
             var result = await _orderQueries.GetOrdersBySellerIdAsync(sellerId, paginationParams);
             return Ok(result);
         }
@@ -151,7 +176,7 @@ namespace API_Ecommerce.Controllers
         // 4. GET: api/Order/statistics
         // ==========================================
         [HttpGet("statistics")]
-        [AllowAnonymous]
+        [Authorize(Roles = "Admin,Seller")]
         public async Task<IActionResult> GetOrderStatistics([FromQuery] long? sellerId)
         {
             var statistics = await _orderQueries.GetOrderStatisticsAsync(sellerId);
@@ -162,9 +187,31 @@ namespace API_Ecommerce.Controllers
         // 5. PATCH: api/Order/{id}/status
         // ==========================================
         [HttpPatch("{id:long}/status")]
-        [AllowAnonymous]
+        [Authorize]
         public async Task<IActionResult> UpdateOrderStatus(long id, [FromBody] OrderDtos.UpdateStatus dto)
         {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out long currentUserId))
+            {
+                return Unauthorized(new { message = "Invalid or missing user token." });
+            }
+
+            var order = await _orderQueries.GetOrderByIdAsync(id);
+            if (order == null)
+            {
+                return NotFound(new { message = $"Order with ID {id} was not found." });
+            }
+
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? User.FindFirst("role")?.Value;
+            // Enforce resource ownership: regular users can only cancel their own orders
+            if (userRole != "Admin" && userRole != "Seller")
+            {
+                if (order.UserId != currentUserId || dto.Status != OrderStatus.Cancelled)
+                {
+                    return Forbid();
+                }
+            }
+
             var (success, message, data) = await _updateOrderStatusHandler.HandleAsync(id, dto);
 
             if (!success)

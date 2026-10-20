@@ -25,7 +25,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpGet]
-    [AllowAnonymous]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetAllPayments([FromQuery] PaginationParamsDtos paginationParams)
     {
         var result = await _paymentQueries.GetAllPaymentsAsync(paginationParams);
@@ -33,7 +33,7 @@ public class PaymentController : ControllerBase
     }
 
     [HttpGet("statistics")]
-    [AllowAnonymous]
+    [Authorize(Roles = "Admin,Seller")]
     public async Task<IActionResult> GetPaymentStatistics()
     {
         var statistics = await _paymentQueries.GetPaymentStatisticsAsync();
@@ -41,11 +41,16 @@ public class PaymentController : ControllerBase
     }
 
     [HttpPost("generate-qr-from-cart")]
+    [Authorize]
     [EnableRateLimiting("CheckoutRateLimit")]
     public async Task<IActionResult> GenerateQrFromCart([FromBody] CheckoutRequestDto request)
     {
-        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        int userId = string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var parsedId) ? 8 : parsedId;
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                        ?? User.FindFirst("sub")?.Value;
+        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId))
+        {
+            return Unauthorized(new { message = "Invalid or missing user token." });
+        }
 
         var command = new CreatePaymentCommand
         {
@@ -88,9 +93,19 @@ public class PaymentController : ControllerBase
     }
 
     [HttpGet("seller/{sellerId}")]
-    //[Authorize(Roles = "Seller, Admin")]
+    [Authorize(Roles = "Seller,Admin")]
     public async Task<IActionResult> GetPaymentsBySeller(int sellerId, [FromQuery] PaginationParamsDtos paginationParams)
     {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                       ?? User.FindFirst("sub")?.Value;
+        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                    ?? User.FindFirst("role")?.Value;
+
+        if (userRole == "Seller" && int.TryParse(userIdClaim, out int currentUserId) && currentUserId != sellerId)
+        {
+            return Forbid();
+        }
+
         var result = await _paymentQueries.GetPaymentsBySellerIdAsync(sellerId, paginationParams);
         return Ok(result);
     }

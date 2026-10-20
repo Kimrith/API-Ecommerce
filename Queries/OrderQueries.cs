@@ -101,7 +101,7 @@ namespace API_Ecommerce.Queries
                 {
                     Id = row.Shipping_Id,
                     UserId = row.Shipping_UserId,
-                    AddressType = row.Shipping_AddressType,
+                    AddressType = ParseAddressType(row.Shipping_AddressType),
                     StreetAddress = row.Shipping_StreetAddress,
                     City = row.Shipping_City,
                     State = row.Shipping_State,
@@ -115,7 +115,7 @@ namespace API_Ecommerce.Queries
                 {
                     Id = row.Billing_Id,
                     UserId = row.Billing_UserId,
-                    AddressType = row.Billing_AddressType,
+                    AddressType = ParseAddressType(row.Billing_AddressType),
                     StreetAddress = row.Billing_StreetAddress,
                     City = row.Billing_City,
                     State = row.Billing_State,
@@ -126,6 +126,16 @@ namespace API_Ecommerce.Queries
                     UpdatedAt = row.Billing_UpdatedAt
                 } : null
             };
+        }
+
+        private static AddressType ParseAddressType(object? value)
+        {
+            if (value is AddressType at) return at;
+            if (value != null && Enum.TryParse<AddressType>(value.ToString(), true, out var result))
+            {
+                return result;
+            }
+            return AddressType.Shipping;
         }
 
         // ==========================================

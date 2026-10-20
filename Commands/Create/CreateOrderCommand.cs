@@ -49,7 +49,16 @@ namespace API_Ecommerce.Commands.Create
                 throw new ArgumentException("Order must contain at least one item from the cart.");
             }
 
+            foreach (var item in cartItems)
+            {
+                if (item.Quantity <= 0)
+                {
+                    throw new ArgumentException($"Invalid quantity for item {item.ProductId}. Quantity must be at least 1.");
+                }
+            }
+
             decimal subtotal = 0;
+            var now = DateTime.UtcNow;
 
             // Calculate subtotal using active discount checks
             foreach (var item in cartItems)
@@ -66,10 +75,10 @@ namespace API_Ecommerce.Commands.Create
                 }
 
                 bool hasActiveDiscount = product.DiscountPrice.HasValue && product.DiscountPrice.Value > 0 &&
-                    (!product.DiscountStartDate.HasValue || DateTime.UtcNow >= product.DiscountStartDate.Value) &&
-                    (!product.DiscountEndDate.HasValue || DateTime.UtcNow <= product.DiscountEndDate.Value);
+                    (!product.DiscountStartDate.HasValue || now >= product.DiscountStartDate.Value) &&
+                    (!product.DiscountEndDate.HasValue || now <= product.DiscountEndDate.Value);
 
-                decimal unitPrice = hasActiveDiscount ? product.DiscountPrice.Value : product.Price;
+                decimal unitPrice = (hasActiveDiscount && product.DiscountPrice.HasValue) ? product.DiscountPrice.Value : product.Price;
                 subtotal += unitPrice * item.Quantity;
             }
 
@@ -153,10 +162,10 @@ namespace API_Ecommerce.Commands.Create
                 var product = await _context.Products.FindAsync(item.ProductId);
 
                 bool hasActiveDiscount = product != null && product.DiscountPrice.HasValue && product.DiscountPrice.Value > 0 &&
-                    (!product.DiscountStartDate.HasValue || DateTime.UtcNow >= product.DiscountStartDate.Value) &&
-                    (!product.DiscountEndDate.HasValue || DateTime.UtcNow <= product.DiscountEndDate.Value);
+                    (!product.DiscountStartDate.HasValue || now >= product.DiscountStartDate.Value) &&
+                    (!product.DiscountEndDate.HasValue || now <= product.DiscountEndDate.Value);
 
-                decimal unitPrice = product != null ? (hasActiveDiscount ? product.DiscountPrice.Value : product.Price) : 0;
+                decimal unitPrice = product != null ? ((hasActiveDiscount && product.DiscountPrice.HasValue) ? product.DiscountPrice.Value : product.Price) : 0;
 
                 var orderItem = new OrderItem
                 {
