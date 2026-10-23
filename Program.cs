@@ -193,7 +193,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("LocalDevPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:4200", "http://127.0.0.1:4200")
+        policy.WithOrigins(
+                  "https://ecommerce.cheykimrith.shop",
+                  "http://localhost:4200",
+                  "https://localhost:4200",
+                  "http://127.0.0.1:4200"
+              )
               .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
               .WithHeaders("Content-Type", "Authorization", "X-Requested-With", "X-XSRF-TOKEN", "Accept", "Origin")
               .AllowCredentials();
