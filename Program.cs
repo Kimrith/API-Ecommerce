@@ -18,6 +18,7 @@ using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using API_Ecommerce.Models;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -125,9 +126,12 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// ==========================================
 // 5. Antiforgery (CSRF Defense) & Rate Limiting Setup
-// ==========================================
+var keysDirectory = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtection-Keys");
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keysDirectory))
+    .SetApplicationName("API_Ecommerce");
+
 builder.Services.AddAntiforgery(options =>
 {
     options.Cookie.Name = ".AspNetCore.Antiforgery";
@@ -384,17 +388,25 @@ app.UseRateLimiter();
 // CSRF Token Cookie Middleware (issue/refresh XSRF-TOKEN on GET requests)
 app.Use(async (context, next) =>
 {
-    var antiforgery = context.RequestServices.GetRequiredService<IAntiforgery>();
-    var tokens = antiforgery.GetAndStoreTokens(context);
-    if (tokens.RequestToken != null)
+    try
     {
-        context.Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken, new CookieOptions
+        var antiforgery = context.RequestServices.GetRequiredService<IAntiforgery>();
+        var tokens = antiforgery.GetAndStoreTokens(context);
+        if (tokens.RequestToken != null)
         {
-            HttpOnly = false,
-            SameSite = SameSiteMode.Lax,
-            Secure = context.Request.IsHttps,
-            Path = "/"
-        });
+            context.Response.Cookies.Append("XSRF-TOKEN", tokens.RequestToken, new CookieOptions
+            {
+                HttpOnly = false,
+                SameSite = SameSiteMode.Lax,
+                Secure = context.Request.IsHttps,
+                Path = "/"
+            });
+        }
+    }
+    catch (Exception)
+    {
+        // Stale cookie from a prior dev session; remove it so next request gets clean tokens
+        context.Response.Cookies.Delete(".AspNetCore.Antiforgery");
     }
     await next();
 });
@@ -409,5 +421,7 @@ app.MapGet("/api/csrf-token", (IAntiforgery antiforgery, HttpContext context) =>
     var tokens = antiforgery.GetAndStoreTokens(context);
     return Results.Ok(new { token = tokens.RequestToken, headerName = "X-XSRF-TOKEN" });
 });
+
+app.Urls.Add("http://localhost:5000");
 
 app.Run();
